@@ -1,4 +1,4 @@
-const { Client, MessageMedia, LocalAuth } = require('whatsapp-web.js');
+const { Client, MessageMedia, LocalAuth, LegacySessionAuth } = require('whatsapp-web.js');
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const socketIO = require('socket.io');
@@ -81,7 +81,7 @@ client.on('message', msg => {
         }
       });
     default:
-      msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak medukung pesan masuk')
+      msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak dapat menerima pesan')
       break;
   }
 
