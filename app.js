@@ -176,7 +176,7 @@ app.post('/send-message', [
   if (!isRegisteredNumber) {
     return res.status(422).json({
       status: false,
-      message: 'The number is not registered'
+      message: 'Nomor tidak terdaftar'
     });
   }
 
