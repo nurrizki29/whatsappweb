@@ -80,7 +80,7 @@ client.on('message', msg => {
         }
       });
     default:
-      msg.reply('*AUTO REPLY*%0D%0AWhatsapp ini tidak medukung pesan masuk')
+      msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak medukung pesan masuk')
       break;
   }
 
