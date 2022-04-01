@@ -51,8 +51,9 @@ const client = new Client({
       '--disable-gpu'
     ],
   },
-  authStrategy: new LocalAuth(),
-  session: sessionCfg,
+  authStrategy: new LegacySessionAuth({
+    session: sessionData
+  })
 });
 
 
@@ -142,10 +143,16 @@ io.on('connection', function(socket) {
     socket.emit('message', 'Whatsapp is ready!');
   });
 
-  client.on('authenticated', () => {
+  client.on('authenticated', (session) => {
     socket.emit('authenticated', 'Whatsapp is authenticated!');
     socket.emit('message', 'Whatsapp is authenticated!');
     console.log('AUTHENTICATED');
+    sessionCfg = session;
+    fs.writeFile(SESSION_FILE_PATH, JSON.stringify(session), (err) => {
+        if (err) {
+            console.error(err);
+        }
+    });
   });
 
   client.on('auth_failure', function(session) {
