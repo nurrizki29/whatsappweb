@@ -57,26 +57,33 @@ const client = new Client({
 
 
 client.on('message', msg => {
-  if (msg.body == '!ping') {
-    msg.reply('pong');
-  } else if (msg.body == 'good morning') {
-    msg.reply('selamat pagi');
-  } else if (msg.body == '!groups') {
-    client.getChats().then(chats => {
-      const groups = chats.filter(chat => chat.isGroup);
-
-      if (groups.length == 0) {
-        msg.reply('You have no group yet.');
-      } else {
-        let replyMsg = '*YOUR GROUPS*\n\n';
-        groups.forEach((group, i) => {
-          replyMsg += `ID: ${group.id._serialized}\nName: ${group.name}\n\n`;
-        });
-        replyMsg += '_You can use the group id to send a message to the group._'
-        msg.reply(replyMsg);
-      }
-    });
+  switch (msg.body) {
+    case '!ping':
+      msg.reply('pong');
+      break;
+    case 'good morning':
+      msg.reply('Selamat Pagi');
+      break;
+    case'!groups':
+      client.getChats().then(chats => {
+        const groups = chats.filter(chat => chat.isGroup);
+  
+        if (groups.length == 0) {
+          msg.reply('You have no group yet.');
+        } else {
+          let replyMsg = '*YOUR GROUPS*\n\n';
+          groups.forEach((group, i) => {
+            replyMsg += `ID: ${group.id._serialized}\nName: ${group.name}\n\n`;
+          });
+          replyMsg += '_You can use the group id to send a message to the group._'
+          msg.reply(replyMsg);
+        }
+      });
+    default:
+      msg.reply('*AUTO REPLY*%0D%0AWhatsapp ini tidak medukung pesan masuk')
+      break;
   }
+
 
   // Downloading media
   if (msg.hasMedia) {
