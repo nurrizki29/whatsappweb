@@ -52,7 +52,7 @@ const client = new Client({
     ],
   },
   authStrategy: new LegacySessionAuth({
-    session: sessionData
+    session: sessionCfg
   })
 });
 
