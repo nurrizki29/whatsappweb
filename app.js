@@ -16,6 +16,12 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
+const SESSION_FILE_PATH = './session.json';
+let sessionCfg;
+if (fs.existsSync(SESSION_FILE_PATH)) {
+  sessionCfg = require(SESSION_FILE_PATH);
+}
+
 app.use(express.json());
 app.use(express.urlencoded({
   extended: true
@@ -45,8 +51,10 @@ const client = new Client({
       '--disable-gpu'
     ],
   },
-  authStrategy: new LocalAuth()
+  authStrategy: new LocalAuth(),
+  session: sessionCfg,
 });
+
 
 client.on('message', msg => {
   if (msg.body == '!ping') {
