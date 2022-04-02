@@ -99,7 +99,7 @@ const createSession = function(id, description) {
   client.on('ready', () => {
     io.emit('ready', { id: id });
     io.emit('message', { id: id, text: 'Whatsapp is ready!' });
-
+    console.log(`Client ${id} is ready!`);
     const savedSessions = getSessionsFile();
     const sessionIndex = savedSessions.findIndex(sess => sess.id == id);
     savedSessions[sessionIndex].ready = true;
@@ -174,20 +174,37 @@ io.on('connection', function(socket) {
     console.log('Create session: ' + data.id);
     createSession(data.id, data.description);
   });
+  socket.on('remove-session',function(data){
+    console.log('Request remove session: ' + data.id);
+    const indexClient = sessions.find(sess => sess.id == sender)
+    const client = indexClient.client
+    client.destroy();
+    client.initialize();
+
+    // Menghapus pada file sessions
+    const savedSessions = getSessionsFile();
+    const sessionIndex = savedSessions.findIndex(sess => sess.id == data.id);
+    savedSessions.splice(sessionIndex, 1);
+    setSessionsFile(savedSessions);
+
+    io.emit('remove-session', id);
+  })
 });
 
 // Send message
 app.post('/send-message', async (req, res) => {
-  console.log(req);
+  // console.log(req);
 
   const sender = req.body.sender;
   const number = phoneNumberFormatter(req.body.number);
   const message = req.body.message;
-
-  const client = sessions.find(sess => sess.id == sender)?.client;
+  // console.log(sessions)
+  const indexClient = sessions.find(sess => sess.id == sender)
+  console.log(indexClient)
+  const client = indexClient.client;
 
   // Make sure the sender is exists & ready
-  if (!client) {
+  if (!indexClient) {
     return res.status(422).json({
       status: false,
       message: `The sender: ${sender} is not found!`

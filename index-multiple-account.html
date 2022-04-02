@@ -34,7 +34,8 @@
 			<div class="client hide">
 				<h3 class="title"></h3>
 				<p class="description"></p>
-				<img src="" alt="QR Code" id="qrcode">
+				<button class="remove-client-btn">Hapus Client</button>
+				<img src="" alt="QR Code" id="qrcode" hidden>
 				<h3>Logs:</h3>
 				<ul class="logs"></ul>
 			</div>
@@ -55,12 +56,23 @@
 										   .removeClass('hide')
 										   .addClass(clientId);
 				template.find('.title').html(clientId);
+				template.find('#qrcode').attr('id', 'qrcode-' + clientId);
 				template.find('.description').html(clientDescription);
 				$('.client-container').append(template);
 
 				socket.emit('create-session', {
 					id: clientId,
 					description: clientDescription
+				});
+			});
+			// Ketika button hapus diklik
+			$('.remove-client-btn').click(function() {
+				var clientId = $(this).data('client-id');
+				$(this).data('disabled', true);
+				console.log('Removing client ',clientId)
+
+				socket.emit('remove-session', {
+					id: clientId,
 				});
 			});
 
@@ -76,6 +88,7 @@
 											   .removeClass('hide')
 											   .addClass(clientId);
 					template.find('.title').html(clientId);
+					template.find('#qrcode').attr('id', 'qrcode-' + clientId);
 					template.find('.description').html(clientDescription);
 					$('.client-container').append(template);
 
@@ -96,8 +109,10 @@
 			});
 
 			socket.on('qr', function(data) {
-				$(`.client.${data.id} #qrcode`).attr('src', data.src);
-				$(`.client.${data.id} #qrcode`).show();
+				console.log(data)
+				console.log(`.client.${data.id} #qrcode`)
+				$(`.client.${data.id} #qrcode-${data.id}`).attr('src', data.src);
+				$(`.client.${data.id} #qrcode-${data.id}`).show();
 			});
 
 			socket.on('ready', function(data) {

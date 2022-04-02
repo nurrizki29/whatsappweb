@@ -9,6 +9,8 @@ const { phoneNumberFormatter } = require('./helpers/formatter');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
 const mime = require('mime-types');
+const mysql = require('mysql');
+const { v4: uuidv4 } = require('uuid');
 
 const port = process.env.PORT || 8000;
 
@@ -21,7 +23,29 @@ let sessionCfg;
 if (fs.existsSync(SESSION_FILE_PATH)) {
   sessionCfg = require(SESSION_FILE_PATH);
 }
+var db_portald3pajak = mysql.createPool({
+  host: "localhost",
+  user: "root",
+  database: "testing"
+});
+var db_wa = mysql.createPool({
+  host: "localhost",
+  user: "root",
+  database: "testing"
+});
 
+const queryMysql = (uuid,penerima,msgbody) =>{
+  return new Promise((resolve, reject)=>{
+      let sql = "INSERT INTO `notifikasi` (`id`, `penerima`,`pesan`,`created_at`, `updated_at`) VALUES ('"+uuid+"','"+penerima+"','"+msgbody+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+      db_portald3pajak.query(sql, function (err, result) {
+          if (err) return reject(err);
+          console.log("Database created");
+      });
+      msgbody += "\n\n----------\nKlik link berikut untuk cek keaslian pesan ini\nhttps://portal.d3pajak19.com/ceknotif/"+uuid;
+      return resolve(msgbody);
+      
+  });
+};
 app.use(express.json());
 app.use(express.urlencoded({
   extended: true
@@ -39,7 +63,7 @@ app.get('/', (req, res) => {
     root: __dirname
   });
 });
-
+app.get('/ip', (request, response) => response.send(request.ip))
 const client = new Client({
   restartOnAuthFail: true,
   puppeteer: {
@@ -62,8 +86,8 @@ const client = new Client({
 
 
 client.on('message', msg => {
-  console.log('--NEW MESSAGE--');
-  console.log(msg);
+  // console.log('--NEW MESSAGE--');
+  // console.log(msg);
   switch (msg.body) {
     case '!ping':
       msg.reply('pong');
@@ -141,9 +165,35 @@ client.on('message', msg => {
     });
   }
 });
-
+const msgBodyChecker = async (msgbody,penerima) => {
+  console.log(msgbody);
+  // Fired on all message creations, including your own
+  if (msgbody.startsWith("*-PORTAL D3pajak19-*")){
+    let uuid = uuidv4();
+    try{
+      msgbody = await queryMysql(uuid,penerima,msgbody);
+    } catch(error){
+      console.log(error)
+    }
+    return msgbody
+  }
+};
 client.initialize();
-
+client.on('ready', () => {
+  let sql = "SELECT * FROM `log_message`WHERE status='pending'";
+  db_wa.query(sql, function (err, result) {
+    if (err) throw err;
+    result.forEach(data => {
+      const number = phoneNumberFormatter(data.penerima);
+      client.sendMessage(number, data.pesan);
+      let sql = "UPDATE `log_message` SET `status`='success' WHERE `id`='"+data.id+"'";
+      db_wa.query(sql, function (err, result) {
+        if (err) throw err;
+        console.log("Database updated");
+      });
+    });
+  });
+})
 // Socket IO
 io.on('connection', function(socket) {
   socket.emit('message', 'Connecting...');
@@ -159,9 +209,10 @@ io.on('connection', function(socket) {
   client.on('ready', () => {
     socket.emit('ready', 'Whatsapp is ready!');
     socket.emit('message', 'Whatsapp is ready!');
+    console.log('Whatsapp is ready!');
   });
 
-  client.on('authenticated', (session) => {
+  client.on('authenticated', async (session) => {
     socket.emit('authenticated', 'Whatsapp is authenticated!');
     socket.emit('message', 'Whatsapp is authenticated!');
     console.log('AUTHENTICATED');
@@ -209,27 +260,41 @@ app.post('/send-message', [
   }
 
   const number = phoneNumberFormatter(req.body.number);
-  const message = req.body.message;
+  const message = await msgBodyChecker(req.body.message,req.body.number);
 
-  const isRegisteredNumber = await checkRegisteredNumber(number);
+  let status_msg = "pending"
+  let status_wa = await client.getState()
+  console.log("STATUS",status_wa)
+  if ( status_wa!=='CONNECTED') {
+    res.status(200).json({
+      status: status_msg,
+    });
+  }else{
+    const isRegisteredNumber = await checkRegisteredNumber(number);
 
-  if (!isRegisteredNumber) {
-    return res.status(422).json({
-      status: false,
-      message: 'Nomor tidak terdaftar'
+    if (!isRegisteredNumber) {
+      return res.status(422).json({
+        status: false,
+        message: 'Nomor tidak terdaftar'
+      });
+    }
+    client.sendMessage(number, message).then(response => {
+      status_msg="success"
+      res.status(200).json({
+        status: status_msg,
+        response: response
+      });
+    }).catch(err => {
+      res.status(500).json({
+        status: false,
+        response: err
+      });
     });
   }
-
-  client.sendMessage(number, message).then(response => {
-    res.status(200).json({
-      status: true,
-      response: response
-    });
-  }).catch(err => {
-    res.status(500).json({
-      status: false,
-      response: err
-    });
+  let sql = "INSERT INTO `log_message` (`penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+  db_wa.query(sql, function (err, result) {
+    if (err) throw err;
+    console.log("1 message recorded -END-");
   });
 });
 
@@ -315,7 +380,7 @@ app.post('/send-group-message', [
     }
     chatId = group.id._serialized;
   }
-
+  
   client.sendMessage(chatId, message).then(response => {
     res.status(200).json({
       status: true,
