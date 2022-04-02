@@ -4,7 +4,7 @@
   "description": "Whatsapp API",
   "main": "app-multiple-account.js",
   "scripts": {
-    "start": "node app.js",
+    "start": "node app-multiple-account.js",
     "start:dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
