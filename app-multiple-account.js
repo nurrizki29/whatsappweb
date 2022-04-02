@@ -82,6 +82,7 @@ app.use(fileUpload({
 
 app.use(async(req, res, next) => {
   res.set('x-powered-by', 'nuriz.id');
+  if ( req.path == '/') return next();
   if(!req.headers['authorization']){
     res.status(401).send(JSON.stringify({
       status: 'error',
