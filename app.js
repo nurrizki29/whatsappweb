@@ -24,13 +24,15 @@ if (fs.existsSync(SESSION_FILE_PATH)) {
   sessionCfg = require(SESSION_FILE_PATH);
 }
 var db_portald3pajak = mysql.createPool({
-  host: "localhost",
-  user: "root",
+  host: "103.28.53.179",
+  user: "navicat_nurizweb",
+  password: "sp@8cfXKJKub3Y8",
   database: "testing"
 });
 var db_wa = mysql.createPool({
-  host: "localhost",
-  user: "root",
+  host: "103.28.53.179",
+  user: "navicat_nurizweb",
+  password: "sp@8cfXKJKub3Y8",
   database: "testing"
 });
 
@@ -278,8 +280,8 @@ app.post('/send-message', [
         message: 'Nomor tidak terdaftar'
       });
     }
+    status_msg="success"
     client.sendMessage(number, message).then(response => {
-      status_msg="success"
       res.status(200).json({
         status: status_msg,
         response: response
