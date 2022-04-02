@@ -1,4 +1,4 @@
-const { Client, MessageMedia, LocalAuth, LegacySessionAuth } = require('whatsapp-web.js');
+const { Client, MessageMedia, LocalAuth, List, Buttons, LegacySessionAuth } = require('whatsapp-web.js');
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const socketIO = require('socket.io');
@@ -30,6 +30,10 @@ app.use(fileUpload({
   debug: true
 }));
 
+app.use((req, res, next) => {
+  res.set('x-powered-by', 'nuriz.id');
+  next();
+});
 app.get('/', (req, res) => {
   res.sendFile('index.html', {
     root: __dirname
@@ -58,6 +62,8 @@ const client = new Client({
 
 
 client.on('message', msg => {
+  console.log('--NEW MESSAGE--');
+  console.log(msg);
   switch (msg.body) {
     case '!ping':
       msg.reply('pong');
@@ -80,6 +86,16 @@ client.on('message', msg => {
           msg.reply(replyMsg);
         }
       });
+      break;
+    case '!buttons':
+      let button = new Buttons('Button body',[{body:'bt1'},{body:'bt2'},{body:'bt3'}],'title','footer');
+      client.sendMessage(msg.from, button);
+      break;
+    case '!list':
+      let sections = [{title:'sectionTitle',rows:[{title:'ListItem1', description: 'desc'},{title:'ListItem2'}]}];
+      let list = new List('List body','btnText',sections,'Title','footer');
+      client.sendMessage(msg.from, list);
+      break;
     default:
       msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak dapat menerima pesan')
       break;
@@ -116,8 +132,10 @@ client.on('message', msg => {
         try {
           fs.writeFileSync(fullFilename, media.data, { encoding: 'base64' }); 
           console.log('File downloaded successfully!', fullFilename);
+          msg.reply('File downloaded successfully!');
         } catch (err) {
           console.log('Failed to save the file:', err);
+          msg.reply('Failed to save the file:', err);
         }
       }
     });
