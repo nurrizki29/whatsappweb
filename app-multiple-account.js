@@ -82,7 +82,7 @@ app.use(fileUpload({
 
 app.use(async(req, res, next) => {
   res.set('x-powered-by', 'nuriz.id');
-  if ( req.path == '/') return next();
+  if ( req.path == '/' || req.path=='/ip') return next();
   if(!req.headers['authorization']){
     res.status(401).send(JSON.stringify({
       status: 'error',
@@ -107,7 +107,7 @@ app.use(async(req, res, next) => {
   next();
 });
 //testing number of proxy
-app.set('trust proxy', 1) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
+app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
 app.get('/ip', (request, response) => response.send(request.ip))
 
 app.get('/', (req, res) => {
