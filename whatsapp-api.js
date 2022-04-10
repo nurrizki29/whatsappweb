@@ -13,16 +13,18 @@ const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit')
 const cors = require('cors');
 const jwt = require("jsonwebtoken");
-const secretKey = '019jd99jsi91jedi0djjwi000jdos00290iujk';
+const {secretKey} = require('./main.js');
+
+const waSocket = io.of('/whatsapp');
 
 const port = process.env.PORT || 8000;
 
 //Initializing db connection
 var db_portald3pajak = mysql.createPool({
-  host: "103.28.53.92",
-  user: "dpajakco_portal",
-  password: "19d3pajak",
-  database: "dpajakco_portal"
+  host: "103.28.53.179",
+  user: "nurizweb_navicat",
+  password: "sp@8cfXKJKub3Y8",
+  database: "nurizweb_whatsappapi"
 });
 var db_wa = mysql.createPool({
   host: "103.28.53.179",
@@ -44,15 +46,16 @@ const msgBodyChecker = async (msgbody,penerima) => {
   if (msgbody.startsWith("*-PORTAL D3pajak19-*")){
     let uuid = uuidv4();
     try{
-      msgbody = await queryMysql(uuid,penerima,msgbody);
+      msgbody = await queryMysql(penerima,msgbody);
     } catch(error){
       console.log(error)
     }
     return msgbody
   }
 };
-const queryMysql = (uuid,penerima,msgbody) =>{
+const queryMysql = (penerima,msgbody) =>{
   return new Promise((resolve, reject)=>{
+      let uuid = uuidv4();
       let sql = "INSERT INTO `notifikasi` (`id`, `penerima`,`pesan`,`created_at`, `updated_at`) VALUES ('"+uuid+"','"+penerima+"','"+msgbody+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
       db_portald3pajak.query(sql, function (err, result) {
           if (err) return reject(err);
@@ -64,119 +67,11 @@ const queryMysql = (uuid,penerima,msgbody) =>{
   });
 };
 //----------
-const APIlimiterStd = rateLimit({
-  skipFailedRequests: true,
-  windowMs:  24*60*60*1000, // 1 day window
-  standardHeaders: false, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers,
-  max: 3,
-  handler: (req, res, next) => {
-    res.status(429).send(JSON.stringify({
-      status: 'error',
-      message: 'Too Many Requests, please try again in 24 Hours later.'})
-    );
-  }
-})
-const APIlimiterPremium = rateLimit({
-  skipFailedRequests: true,
-  windowMs:  7*24*60*60*1000, // 1 week window
-  standardHeaders: false, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers,
-  max: 50,
-  keyGenerator: (req) => jwt.verify(req.headers.authorization.split(' ')[1], secretKey),
-  handler: (req, res, next) => {
-    res.status(429).send(JSON.stringify({
-      status: 'error',
-      message: 'Too Many Requests, please try again later.'})
-    );
-  }
-})
-
-app.use(express.json(),cors());
-app.use(express.urlencoded({
-  extended: true
-}));
-
-/**
- * BASED ON MANY QUESTIONS
- * Actually ready mentioned on the tutorials
- * 
- * The two middlewares above only handle for data json & urlencode (x-www-form-urlencoded)
- * So, we need to add extra middleware to handle form-data
- * Here we can use express-fileupload
- */
-app.use(fileUpload({
-  debug: false
-}));
-app.use('/publicapi', APIlimiterStd)
-app.use('/api',async(req, res, next) => {
-  res.set('x-powered-by', 'nuriz.id');
-  if ( req.path == '/' || req.path=='/ip') return next();
-  if(!req.headers['authorization']){
-    res.status(401).send(JSON.stringify({
-      status: 'error',
-      message: 'Missing authorization on request'
-    }))
-    return;
-  }else{
-    const token = req.headers['authorization'].split(' ')[1];
-    let decoded = null
-    try{
-     decoded = jwt.verify(token, secretKey);
-    }catch(err){
-      res.status(401).send(JSON.stringify({
-        status: 'error',
-        message: 'Invalid authorization on request'
-      }))
-      return;
-    }
-    console.log(decoded)
-  }
-  next();
-},APIlimiterPremium);
-
-//testing number of proxy
-// app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
-app.get('/ip', (request, response) => response.send(request.ip))
-
-app.get('/', (req, res) => {
-  res.sendFile('index-multiple-account.html', {
-    root: __dirname
-  });
-});
-// Public API
-app.get('/publicapi/*',(req,res)=>{
-  switch(req.params[0]){
-    default:
-      invalidAPIrequest(req,res);
-      break;
-  }
-})
-app.post('/publicapi/*',(req,res)=>{
-  switch(req.params[0]){
-    case 'send-message':
-      postSendMessage(req,res);
-      break
-    default:
-      invalidAPIrequest(req,res);
-      break;
-  }
-})
-// Premium API
-app.use('/api/*',(req,res)=>{
-  req.params = req.params[0].split('/');
-  console.log(`${req.params[0]}${req.method}handler(req,res)`)
-  try{
-    eval(`${req.params[0]}${req.method}handler(req,res)`)
-  }catch(err){
-    invalidAPIrequest(req,res);
-  }
-})
 
 const invalidAPIrequest = (req, res) => {
   res.status(404).send(JSON.stringify({
     status: 'error',
-    message: 'Invalid API'
+    message: 'Invalid Whatsapp API'
   }))
 }
 
@@ -235,21 +130,22 @@ const createSession = function(id, description) {
   client.on('qr', (qr) => {
     console.log('QR RECEIVED FOR ID:',id, qr);
     qrcode.toDataURL(qr, (err, url) => {
-      io.emit('qr', { id: id, src: url });
-      io.emit('message', { id: id, text: 'QR Code received, scan please!' });
+      waSocket.emit('qr', { id: id, src: url });
+      waSocket.emit('message', { id: id, text: 'QR Code received, scan please!' });
     });
   });
 
   client.on('ready', () => {
-    io.emit('ready', { id: id });
-    io.emit('message', { id: id, text: 'Whatsapp is ready!' });
-    io.emit('number', { id: id, number: client.info.wid.user });
+    waSocket.emit('ready', { id: id });
+    waSocket.emit('message', { id: id, text: 'Whatsapp is ready!' });
+    waSocket.emit('number', { id: id, number: client.info.wid.user });
     
     console.log(`Client ${id} is ready!`);
     const savedSessions = getSessionsFile();
     const sessionIndex = savedSessions.findIndex(sess => sess.id == id);
     savedSessions[sessionIndex].ready = true;
     savedSessions[sessionIndex].number = client.info.wid.user;
+    sessions[sessionIndex].number = client.info.wid.user;
     setSessionsFile(savedSessions);
     // Checking pending message in db
     let sql = "SELECT * FROM `log_message`WHERE status='pending'";
@@ -268,16 +164,17 @@ const createSession = function(id, description) {
   });
 
   client.on('authenticated', () => {
-    io.emit('authenticated', { id: id });
-    io.emit('message', { id: id, text: 'Whatsapp is authenticated!' });
+    console.log(`Client ${id} is authenticated!`);
+    waSocket.emit('authenticated', { id: id });
+    waSocket.emit('message', { id: id, text: 'Whatsapp is authenticated!' });
   });
 
   client.on('auth_failure', function() {
-    io.emit('message', { id: id, text: 'Auth failure, restarting...' });
+    waSocket.emit('message', { id: id, text: 'Auth failure, restarting...' });
   });
 
   client.on('disconnected', (reason) => {
-    io.emit('message', { id: id, text: 'Whatsapp is disconnected!' });
+    waSocket.emit('message', { id: id, text: 'Whatsapp is disconnected!' });
     client.destroy();
     client.initialize();
 
@@ -287,7 +184,7 @@ const createSession = function(id, description) {
     savedSessions.splice(sessionIndex, 1);
     setSessionsFile(savedSessions);
 
-    io.emit('remove-session', id);
+    waSocket.emit('remove-session', id);
   });
 
   client.on('message', async msg => {
@@ -510,7 +407,7 @@ const init = function(socket) {
 init();
 
 // Socket IO
-io.on('connection', function(socket) {
+waSocket.on('connection', function(socket) {
   init(socket);
   socket.on('create-session', function(data) {
     console.log('Create session: ' + data.id);
@@ -528,9 +425,48 @@ io.on('connection', function(socket) {
     savedSessions.splice(sessionIndex, 1);
     setSessionsFile(savedSessions);
 
-    io.emit('remove-session', data.id);
+    waSocket.emit('remove-session', data.id);
   })
 });
+function whatsappGEThandler(req,res){
+  switch(req.params[1]){
+    case 'cek-nomor':
+      cekNomor(req,res);
+      break;
+    default:
+      invalidAPIrequest()
+  }
+
+  async function cekNomor(req,res){
+    if (!req.body.nomor){
+
+    }
+    const sender = Math.floor(Math.random() * sessions.length);
+    const client = sessions[sender].client;
+    const number = phoneNumberFormatter(req.query.nomor);
+    let status_wa = await client.getState()
+    console.log("Cek nomor "+req.query.nomor+" lewat "+sessions[sender].number+" ("+sessions[sender].id+")")
+    if ( status_wa!=='CONNECTED') {
+      return res.status(406).json({
+        status: 'failed',
+        message: 'Whatsapp not connected',
+      });
+    }
+    const isRegisteredNumber = await client.isRegisteredUser(number);
+    if (isRegisteredNumber){
+      return res.json({
+        status: true,
+        message: 'nomor terdaftar'
+      })
+    }
+    if (!isRegisteredNumber) {
+      return res.status(422).json({
+        status: false,
+        message: 'nomor tidak terdaftar'
+      });
+    }
+  }
+}
 function whatsappPOSThandler(req,res){
   switch(req.params[1]){
     case 'send-message':
@@ -542,21 +478,20 @@ function whatsappPOSThandler(req,res){
   // Send message
   async function postSendMessage(req, res){
     // console.log(req);
-
-    const sender = req.body.sender;
-    const number = phoneNumberFormatter(req.body.number);
-    const message = await msgBodyChecker(req.body.message);
-    // console.log(sessions)
-    const indexClient = sessions.find(sess => sess.id == sender)
-    const client = indexClient.client;
-
-    // Make sure the sender is exists & ready
-    if (!indexClient) {
-      return res.status(422).json({
-        status: false,
-        message: `The sender: ${sender} is not found!`
+    if (!req.body.number || !req.body.message) {
+      res.status(400).sen({
+        message: 'Bad Request',
       })
     }
+
+    const sender = Math.floor(Math.random() * sessions.length);
+    const number = phoneNumberFormatter(req.body.number);
+    let message = req.body.message;
+    if (jwt.decode(req.headers['authorization'].split(' ')[1], secretKey).name == 'Portal D3Pajak19'){
+      message = await queryMysql(req.body.number,req.body.message)
+    }
+    // console.log(sessions)
+    const client = sessions[sender].client;
 
     /**
      * Check if the number is already registered
@@ -594,7 +529,7 @@ function whatsappPOSThandler(req,res){
         });
       });
     }
-    let sql = "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+indexClient.number+"','"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+    let sql = "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+sessions[sender].number+"','"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
     db_wa.query(sql, function (err, result) {
       if (err) throw err;
       console.log("1 message recorded -END-");
@@ -605,6 +540,7 @@ function whatsappPOSThandler(req,res){
 async function sleep(millis) {
   return new Promise(resolve => setTimeout(resolve, millis));
 }
-server.listen(port, function() {
-  console.log('App running on *: ' + port);
-});
+module.exports = {
+  whatsappPOSThandler,
+  whatsappGEThandler
+}
