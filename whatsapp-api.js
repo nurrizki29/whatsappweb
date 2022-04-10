@@ -491,8 +491,7 @@ function whatsappPOSThandler(req,res){
       message = await queryMysql(req.body.number,req.body.message)
     }
     // console.log(sessions)
-    const client = sessions[sender].client;
-
+    
     /**
      * Check if the number is already registered
      * Copied from app.js
@@ -501,35 +500,45 @@ function whatsappPOSThandler(req,res){
      * You can add the same here!
      */
     let status_msg = "pending"
-    let status_wa = await client.getState()
-    console.log("STATUS",status_wa)
-    if ( status_wa!=='CONNECTED') {
-      res.status(200).json({
-        status: status_msg,
-      });
-    }else{
-      const isRegisteredNumber = await client.isRegisteredUser(number);
+    let sender_number = 0;
+    if (sessions.length > 0) {
+      const client = sessions[sender].client;
+      sender_number = sessions[sender].number;
+      let status_wa = await client.getState()
+      console.log("STATUS",status_wa)
+      if ( status_wa!=='CONNECTED') {
+        res.status(200).json({
+          status: status_msg,
+        });
+      }else{
+        const isRegisteredNumber = await client.isRegisteredUser(number);
 
-      if (!isRegisteredNumber) {
-        return res.status(422).json({
-          status: false,
-          message: 'The number is not registered'
+        if (!isRegisteredNumber) {
+          return res.status(422).json({
+            status: false,
+            message: 'The number is not registered'
+          });
+        }
+        status_msg="success"
+        client.sendMessage(number, message).then(response => {
+          res.status(200).json({
+            status: true,
+            response: response
+          });
+        }).catch(err => {
+          res.status(500).json({
+            status: false,
+            response: err
+          });
         });
       }
-      status_msg="success"
-      client.sendMessage(number, message).then(response => {
-        res.status(200).json({
-          status: true,
-          response: response
-        });
-      }).catch(err => {
-        res.status(500).json({
-          status: false,
-          response: err
-        });
+    }else{
+      console.log('Whatsapp API :','No Sessions')
+      res.status(200).json({
+        status: 'no session',
       });
     }
-    let sql = "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+sessions[sender].number+"','"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+    let sql = "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+sender_number+"','"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
     db_wa.query(sql, function (err, result) {
       if (err) throw err;
       console.log("1 message recorded -END-");
