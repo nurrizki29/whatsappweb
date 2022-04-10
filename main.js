@@ -89,7 +89,7 @@ app.use('/api',async(req, res, next) => {
 },APIlimiterPremium);
 
 //testing number of proxy
-// app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
+app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
 app.get('/ip', (request, response) => response.send(request.ip))
 app.get('/whatsapp', (req, res) => {
   res.sendFile('index-multiple-account.html', {
