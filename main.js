@@ -127,7 +127,12 @@ app.use('/api/*',(req,res)=>{
     invalidAPIrequest(req,res);
   }
 })
-
+app.use('*', function(req, res){
+  res.status(404).send(JSON.stringify({
+    status: 'error',
+    message: 'Invalid API'
+  }))
+});
 server.listen(port, function() {
   console.log('App running on *: ' + port);
 });

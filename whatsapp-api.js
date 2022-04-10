@@ -191,6 +191,7 @@ const createSession = function(id, description) {
     // console.log('--NEW MESSAGE--');
     // console.log(msg);
     const messageType  = ['chat', 'image', 'video', 'ptt', 'audio', 'document', 'location', 'vcard', 'multi_vcard', 'sticker'];
+    console.log(msg.type, msg.body)
     if (messageType.indexOf(msg.type)<0) return
     const chat = await msg.getChat();
     if (chat.isGroup){
@@ -257,7 +258,7 @@ const createSession = function(id, description) {
           });
           break;
         default:
-          console.log(msg.type)
+          // console.log(msg.type)
           // msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak dapat menerima pesan')
           break;
       }
