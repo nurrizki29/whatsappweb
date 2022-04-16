@@ -1,3 +1,3 @@
-2022/04/16-14:26:27.671 340c Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2022/04/16-14:26:27.672 340c Recovering log #3
-2022/04/16-14:26:27.680 340c Reusing old log D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000003.log 
+2022/04/16-15:01:54.990 3840 Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2022/04/16-15:01:54.990 3840 Recovering log #3
+2022/04/16-15:01:55.016 3840 Reusing old log D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000003.log 

@@ -1,2 +1,3 @@
-2022/04/16-13:24:35.150 3edc Creating DB D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
-2022/04/16-13:24:35.531 3edc Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2022/04/16-14:58:21.208 3f0c Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2022/04/16-14:58:21.209 3f0c Recovering log #3
+2022/04/16-14:58:21.220 3f0c Reusing old log D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000003.log 

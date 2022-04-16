@@ -6,6 +6,7 @@ var FormData = require('form-data');
 const { stdout } = require('process');
 const fs = require('fs');
 const fileDownload = require('js-file-download');
+const https = require('https');
 
 const express = require('express')
 const app = express()
@@ -48,28 +49,30 @@ const bufferToStream = (binary) =>{
 
     return readableInstanceStream;
 }
-
-axios({
-    url: 'https://wa.nuriz.web.id/data_session.zip',
-    method: 'GET',
-    responseType: 'blob', // Important
-}).then((response) => {
-    fileDownload(response.data, './data_session.zip');
-    var sessionZip = new AdmZip('./data_session.zip');
-    const dir = './data_session/'
-    if (!fs.existsSync(dir)){
-        fs.mkdirSync(dir, { recursive: true });
+const file = fs.createWriteStream("data-session.zip");
+const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(response) {
+    if (response.statusCode === 200) {
+        response.pipe(file);
+        // after download completed close filestream
+        file.on("finish", () => {
+            file.close();
+            console.log("Download Completed");
+            var sessionZip = new AdmZip('./data_session.zip');
+                const dir = './data_session/'
+                if (!fs.existsSync(dir)){
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+                sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
+                client.initialize();
+        });
     }
-    sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
-    client.initialize();
-}).catch(function (error) {
-    console.log(error.response.status) // 401
-    console.log(error.response.data.error) //Please Authenticate or whatever returned from server
-    if (error.response.status!==200){
+    else{
+        console.log("Error Downloading File Session, opening new session");
         client.initialize();
-        return
     }
-})
+}).on('error', function(err) {
+    console.log("Error: " + err.message);
+});
 ;
 
 client.on('qr', (qr) => {
