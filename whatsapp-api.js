@@ -76,34 +76,78 @@ const invalidAPIrequest = (req, res) => {
 }
 
 const sessions = [];
-const SESSIONS_FILE = './whatsapp-sessions.json';
-
-const createSessionsFileIfNotExists = function() {
-  if (!fs.existsSync(SESSIONS_FILE)) {
-    try {
-      fs.writeFileSync(SESSIONS_FILE, JSON.stringify([]));
-      console.log('Sessions file created successfully.');
-    } catch(err) {
-      console.log('Failed to create sessions file: ', err);
-    }
-  }
+const getAllSession = ()=>{
+  let sql = 'SELECT * FROM session';
+  return new Promise((resolve, reject)=>{
+    db_wa.query(sql, async function (err, result) {
+      if (err) throw err;
+      let hasil = []
+      result.forEach(data => {
+        hasil.push({
+          id: data.id,
+          description: data.description,
+          ready: data.ready,
+          number: data.number,
+          session: data.session
+        })
+      });
+      return resolve(hasil)
+    })
+  })
+}
+const saveSession = async(id, description,session)=>{
+  let sql = 'INSERT INTO `session` (`id`, `description`, session) VALUES ("'+id+'", "'+description+'", '+session+');';
+  return db_wa.query(sql, function (err, result) {
+    if (err) throw err;
+    return result
+  })
+}
+const updateSession = async(id,ready,number,session)=>{
+  let sql = 'UPDATE `session` SET `ready` = "'+ready+'"';
+  if (session!==undefined) sql += ', session = '+session+'';
+  if (number!==undefined) sql += ', number = "'+session+'"';
+  sql += ' WHERE `id` = "'+id+'";';
+  return db_wa.query(sql, function (err, result) {
+    if (err) throw err;
+    return result
+  })
+}
+const removeSession = async(id) =>{
+  let sql = 'DELETE FROM `session` WHERE `id` = "'+id+'";';
+  return db_wa.query(sql, function (err, result) {
+    if (err) throw err;
+    return result
+  })
 }
 
-createSessionsFileIfNotExists();
+// const SESSIONS_FILE = './whatsapp-sessions.json';
 
-const setSessionsFile = function(sessions) {
-  fs.writeFile(SESSIONS_FILE, JSON.stringify(sessions), function(err) {
-    if (err) {
-      console.log(err);
-    }
-  });
-}
+// const createSessionsFileIfNotExists = function() {
+//   if (!fs.existsSync(SESSIONS_FILE)) {
+//     try {
+//       fs.writeFileSync(SESSIONS_FILE, JSON.stringify([]));
+//       console.log('Sessions file created successfully.');
+//     } catch(err) {
+//       console.log('Failed to create sessions file: ', err);
+//     }
+//   }
+// }
 
-const getSessionsFile = function() {
-  return JSON.parse(fs.readFileSync(SESSIONS_FILE));
-}
+// createSessionsFileIfNotExists();
 
-const createSession = function(id, description) {
+// const setSessionsFile = function(sessions) {
+//   fs.writeFile(SESSIONS_FILE, JSON.stringify(sessions), function(err) {
+//     if (err) {
+//       console.log(err);
+//     }
+//   });
+// }
+
+// const getSessionsFile = function() {
+//   return JSON.parse(fs.readFileSync(SESSIONS_FILE));
+// }
+
+const createSession = function(id, description,session) {
   console.log('Creating session: ' + id);
   const client = new Client({
     restartOnAuthFail: true,
@@ -120,14 +164,15 @@ const createSession = function(id, description) {
         '--disable-gpu'
       ],
     },
-    authStrategy: new LocalAuth({
-      clientId: id
-    })
+    session:session
+    // authStrategy: new LocalAuth({
+    //   clientId: id
+    // })
   });
 
   client.initialize();
 
-  client.on('qr', (qr) => {
+  client.on('qr',(qr) => {
     console.log('QR RECEIVED FOR ID:',id, qr);
     qrcode.toDataURL(qr, (err, url) => {
       waSocket.emit('qr', { id: id, src: url });
@@ -141,12 +186,8 @@ const createSession = function(id, description) {
     waSocket.emit('number', { id: id, number: client.info.wid.user });
     
     console.log(`Client ${id} is ready!`);
-    const savedSessions = getSessionsFile();
-    const sessionIndex = savedSessions.findIndex(sess => sess.id == id);
-    savedSessions[sessionIndex].ready = true;
-    savedSessions[sessionIndex].number = client.info.wid.user;
-    sessions[sessionIndex].number = client.info.wid.user;
-    setSessionsFile(savedSessions);
+    updateSession(id,true,number)
+
     // Checking pending message in db
     let sql = "SELECT * FROM `log_message`WHERE status='pending'";
     db_wa.query(sql, function (err, result) {
@@ -163,8 +204,9 @@ const createSession = function(id, description) {
     });
   });
 
-  client.on('authenticated', () => {
+  client.on('authenticated', (session) => {
     console.log(`Client ${id} is authenticated!`);
+    updateSession(id,false,null, session);
     waSocket.emit('authenticated', { id: id });
     waSocket.emit('message', { id: id, text: 'Whatsapp is authenticated!' });
   });
@@ -176,16 +218,15 @@ const createSession = function(id, description) {
   client.on('disconnected', (reason) => {
     waSocket.emit('message', { id: id, text: 'Whatsapp is disconnected!' });
     client.destroy();
-    client.initialize();
+    // client.initialize();
 
     // Menghapus pada file sessions
-    const savedSessions = getSessionsFile();
-    const sessionIndex = savedSessions.findIndex(sess => sess.id == id);
-    savedSessions.splice(sessionIndex, 1);
-    setSessionsFile(savedSessions);
-
+    removeSession(id)
     waSocket.emit('remove-session', id);
   });
+  client.on('change_state',async state=>{
+    console.log(id," State :",state);
+  })
 
   client.on('message', async msg => {
     // console.log('--NEW MESSAGE--');
@@ -204,7 +245,7 @@ const createSession = function(id, description) {
         case 'good morning':
           msg.reply('Selamat Pagi');
           break;
-        case'!groups':
+        case'/groups':
           client.getChats().then(chats => {
             const groups = chats.filter(chat => chat.isGroup);
       
@@ -220,16 +261,16 @@ const createSession = function(id, description) {
             }
           });
           break;
-        case '!buttons':
+        case '/buttons':
           let button = new Buttons('Button body',[{body:'bt1'},{body:'bt2'},{body:'bt3'}],'title','footer');
           client.sendMessage(msg.from, button);
           break;
-        case '!list':
+        case '/list':
           let sections = [{title:'sectionTitle',rows:[{title:'ListItem1', description: 'desc'},{title:'ListItem2'}]}];
           let list = new List('List body','btnText',sections,'Title','footer');
           client.sendMessage(msg.from, list);
           break;
-        case '!cekd3pajak19':
+        case '/cekd3pajak19':
           msg.reply('Memproses permintaan ...');
           let sql = "SELECT * FROM `mahasiswa` WHERE NOT ISNULL(whatsapp)";
           db_d3pjk.query(sql, async function (err, result) {
@@ -324,6 +365,14 @@ const createSession = function(id, description) {
       }
     }
   });
+  client.on('group_join', async msg => {
+    const chat = await msg.getChat();
+    msg.reply('Halo, Bot ini dapat membantu kamu dalam mengelola group.\r\n\r\nSenang bergabung dengan * ' + chat.name+"*");
+
+  });
+  client.on('group_update',async msg => {
+    msg.reply(JSON.stringify(msg));
+  })
 
 const handleGroupChat = async (msg) => {
   const chat = await msg.getChat();
@@ -375,31 +424,27 @@ const handleGroupChat = async (msg) => {
     description: description,
     client: client
   });
-
-  // Menambahkan session ke file
-  const savedSessions = getSessionsFile();
-  const sessionIndex = savedSessions.findIndex(sess => sess.id == id);
-
-  if (sessionIndex == -1) {
-    savedSessions.push({
-      id: id,
-      description: description,
-      ready: false,
-    });
-  }else{
-    savedSessions[sessionIndex].ready = false;
-  }
-  setSessionsFile(savedSessions);
 }
 
-const init = function(socket) {
-  const savedSessions = getSessionsFile();
+const init = async function(socket) {
+  console.log('INIT')
+  const savedSessions = await getAllSession();
+  console.log(savedSessions)
   if (savedSessions.length > 0) {
     if (socket) {
+      let sessions = [];
+      savedSessions.forEach(sess => {
+        sessions.push({
+          id: sess.id,
+          description: sess.description,
+          number: sess.number,
+        });
+      });
       socket.emit('init', savedSessions);
+      //??
     } else {
       savedSessions.forEach(sess => {
-        createSession(sess.id, sess.description);
+        createSession(sess.id, sess.description,sess.session);
       });
     }
   }
@@ -412,7 +457,8 @@ waSocket.on('connection', function(socket) {
   init(socket);
   socket.on('create-session', function(data) {
     console.log('Create session: ' + data.id);
-    createSession(data.id, data.description);
+    saveSession(data.id, data.description, null);
+    createSession(data.id, data.description,'');
   });
   socket.on('remove-session',function(data){
     console.log('Request remove session: ' + data.id);
@@ -421,10 +467,7 @@ waSocket.on('connection', function(socket) {
     client.destroy();
 
     // Menghapus pada file sessions
-    const savedSessions = getSessionsFile();
-    const sessionIndex = savedSessions.findIndex(sess => sess.id == data.id);
-    savedSessions.splice(sessionIndex, 1);
-    setSessionsFile(savedSessions);
+    removeSession(data.id);
 
     waSocket.emit('remove-session', data.id);
   })

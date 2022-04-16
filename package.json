@@ -2,9 +2,9 @@
   "name": "whatsapp-api",
   "version": "1.0.1",
   "description": "Whatsapp API",
-  "main": "main.js",
+  "main": "demo.js",
   "scripts": {
-    "start": "node main.js",
+    "start": "node demo.js",
     "start:dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,6 +15,7 @@
   "author": "Mohammad Nur Rizki",
   "license": "MIT",
   "dependencies": {
+    "adm-zip": "^0.5.9",
     "axios": "^0.20.0",
     "cors": "^2.8.5",
     "crypto-js": "^4.1.1",
@@ -22,8 +23,9 @@
     "express-fileupload": "^1.2.0",
     "express-rate-limit": "^6.3.0",
     "express-validator": "^6.9.2",
+    "form-data": "^4.0.0",
     "http": "0.0.1-security",
-    "jose": "^4.6.0",
+    "jose": "^4.6.1",
     "jsonwebtoken": "^8.5.1",
     "mime-types": "^2.1.32",
     "mysql": "^2.18.1",
