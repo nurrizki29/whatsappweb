@@ -1,8 +1,8 @@
-[0416/151550.154:ERROR:dxva_video_decode_accelerator_win.cc(1427)] DXVAVDA fatal error: Could not load mf.dll: The specified module could not be found. (0x7E)
-[0416/151550.185:ERROR:backend_impl.cc(1433)] Unable to map Index file
-[0416/151550.213:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)
-[0416/151550.213:ERROR:cache_util.cc(146)] Unable to move cache folder D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\Cache\Cache_Data to D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\Cache\old_Cache_Data_000
-[0416/151550.213:ERROR:disk_cache.cc(186)] Unable to create cache
-[0416/151603.708:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
-[0416/151603.810:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
-[0416/151603.860:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
+[0416/152526.476:ERROR:dxva_video_decode_accelerator_win.cc(1427)] DXVAVDA fatal error: Could not load mf.dll: The specified module could not be found. (0x7E)
+[0416/152526.490:ERROR:backend_impl.cc(1433)] Unable to map Index file
+[0416/152526.491:ERROR:cache_util_win.cc(20)] Unable to move the cache: Access is denied. (0x5)
+[0416/152526.491:ERROR:cache_util.cc(146)] Unable to move cache folder D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\Cache\Cache_Data to D:\NodeJS\whatsapp-api-tutorial-master\data_session\session\Default\Cache\old_Cache_Data_000
+[0416/152526.491:ERROR:disk_cache.cc(186)] Unable to create cache
+[0416/152539.683:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
+[0416/152539.783:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
+[0416/152539.783:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)

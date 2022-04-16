@@ -19,7 +19,6 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
-var szip = new AdmZip("./data-session.zip");
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: './data_session',
