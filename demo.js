@@ -5,6 +5,7 @@ const { Readable } = require('stream');
 var FormData = require('form-data');
 const { stdout } = require('process');
 const fs = require('fs');
+const fileDownload = require('js-file-download');
 
 const express = require('express')
 const app = express()
@@ -48,8 +49,24 @@ const bufferToStream = (binary) =>{
     return readableInstanceStream;
 }
 
-
-client.initialize();
+axios({
+    url: 'https://wa.nuriz.web.id/data_session.zip',
+    method: 'GET',
+    responseType: 'blob', // Important
+}).then((response) => {
+    if (response.status!==200){
+        client.initialize();
+        return
+    }
+    fileDownload(response.data, './data_session.zip');
+    var sessionZip = new AdmZip('./data_session.zip');
+    const dir = './data_session/'
+    if (!fs.existsSync(dir)){
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
+    client.initialize();
+});
 
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
@@ -238,11 +255,11 @@ client.on('message', async msg => {
     } else if (msg.body === '/backup'){
         client.destroy().then(async ()=>{
             var zip = new AdmZip()
-            zip.addLocalFolder('./data_session/session');
-            zip.writeZip('./data_session/session.zip');
+            zip.addLocalFolder('./data_session');
+            zip.writeZip('./data_session.zip');
             console.log('Compression Success');
             const params = new FormData({ maxDataSize: 1009715200 });
-            const file = fs.createReadStream('./data_session/session.zip'); //too big to upload
+            const file = fs.createReadStream('./data_session.zip'); //too big to upload
             params.append('session',file);
             axios({
                 method: 'POST',
@@ -258,8 +275,17 @@ client.on('message', async msg => {
             }).then(function (response) {
                 // console.log(response);
                 console.log('File uploaded successfully!',response.data);
-                client.initialize();
+                // fs.rmSync('./data_session/session.zip',{ recursive: true, force: true });
+                // fs.rmSync('./data_session/session',{ recursive: true, force: true });
+                axios({
+                    url: 'https://api.heroku.com/apps/whatsapp-api-nuriz/dynos',
+                    method: 'DELETE',
+                    headers:{
+                        'Authorization': 'Bearer '+process.env.HEROKU_API_KEY,
+                        'Accept':'application/vnd.heroku+json; version=3`'
+                    }
                 })
+            })
             .catch(function (err) {
             console.log('Failed to save the file:',err);
             });
