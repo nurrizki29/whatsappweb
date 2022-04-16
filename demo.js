@@ -54,10 +54,6 @@ axios({
     method: 'GET',
     responseType: 'blob', // Important
 }).then((response) => {
-    if (response.status!==200){
-        client.initialize();
-        return
-    }
     fileDownload(response.data, './data_session.zip');
     var sessionZip = new AdmZip('./data_session.zip');
     const dir = './data_session/'
@@ -66,7 +62,15 @@ axios({
     }
     sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
     client.initialize();
-});
+}).catch(function (error) {
+    console.log(error.response.status) // 401
+    console.log(error.response.data.error) //Please Authenticate or whatever returned from server
+    if (error.response.status!==200){
+        client.initialize();
+        return
+    }
+})
+;
 
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
