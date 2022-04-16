@@ -6,6 +6,18 @@ var FormData = require('form-data');
 const { stdout } = require('process');
 const fs = require('fs');
 
+const express = require('express')
+const app = express()
+const port = 3000
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
+
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: './data_session',
