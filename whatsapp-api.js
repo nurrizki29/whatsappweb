@@ -535,7 +535,7 @@ const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(r
             }
             console.log('extracting file')
             sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
-            fs.unlinkSync('./data_session.zip');
+            fs.unlinkSync('./data-session.zip');
             console.log('starting...');
             fileSession = true
             init();
