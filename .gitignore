@@ -5,3 +5,4 @@ package-lock.json
 downloaded-media/
 .wwebjs_auth
 session.json
+data-session/
