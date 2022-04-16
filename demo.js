@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
-
+var szip = new AdmZip("./data-session.zip");
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: './data_session',
@@ -57,13 +57,15 @@ const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(r
         file.on("finish", () => {
             file.close();
             console.log("Download Completed");
-            var sessionZip = new AdmZip('./data_session.zip');
-                const dir = './data_session/'
-                if (!fs.existsSync(dir)){
-                    fs.mkdirSync(dir, { recursive: true });
-                }
-                sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
-                client.initialize();
+            var sessionZip = new AdmZip("./data-session.zip");
+            const dir = './data_session/'
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            console.log('extracting file')
+            sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
+            console.log('starting...')
+            client.initialize();
         });
     }
     else{
