@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { Client, MessageMedia, LocalAuth,Buttons,List } = require('whatsapp-web.js');
 const express = require('express');
 const {app,server,io} = require('./socket.js')
@@ -6,6 +7,11 @@ const fs = require('fs');
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
+const cron = require('node-cron');
+const fileDownload = require('js-file-download');
+const https = require('https');
+const AdmZip = require("adm-zip");
+var FormData = require('form-data');
 
 const mime = require('mime-types');
 const mysql = require('mysql');
@@ -18,6 +24,9 @@ const {secretKey} = require('./main.js');
 const waSocket = io.of('/whatsapp');
 
 const port = process.env.PORT || 8000;
+
+var serverReady = false;
+var fileSession = false
 
 //Initializing db connection
 var db_portald3pajak = mysql.createPool({
@@ -39,20 +48,63 @@ var db_d3pjk = mysql.createPool({
   password: "19d3pajak",
   database: "dpajakco_portal"
 });
+//CLEAR SESSION FOLDER IF EXIST
+if (fs.existsSync('./data_session/')) fs.rmdirSync('./data_session/', {recursive: true})
+if (fs.existsSync('./data_session.zip')) fs.unlinkSync('./data_session.zip');
+
+
+//CRONJOB BACKUP
+const restartServer = async() =>{
+  var zip = new AdmZip()
+  zip.addLocalFolder('./data_session');
+  zip.writeZip('./data_session.zip');
+  console.log('Compression Success');
+  const params = new FormData({ maxDataSize: 1009715200 });
+  const file = fs.createReadStream('./data_session.zip'); //too big to upload
+  params.append('session',file);
+  axios({
+      method: 'POST',
+      url: 'https://wa.nuriz.web.id/save_session.php',
+      // url: 'https://webhook.site/4247af82-6ced-4d4a-b767-47a25f30a46f?',
+      data: params,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      headers: {
+          // origin: 'api.nuriz.id',
+          ...params.getHeaders()
+      }
+  }).then(function (response) {
+      // console.log(response);
+      console.log('File uploaded successfully!',response.data);
+      // fs.rmSync('./data_session/session.zip',{ recursive: true, force: true });
+      // fs.rmSync('./data_session/session',{ recursive: true, force: true });
+      axios({
+          url: 'https://api.heroku.com/apps/whatsapp-api-nuriz/dynos',
+          method: 'DELETE',
+          headers:{
+              'Authorization': 'Bearer '+process.env.HEROKU_API_KEY,
+              'Accept':'application/vnd.heroku+json; version=3`'
+          }
+      }).then(function (response,err) {
+          if (response.status!==202){
+            console.log(response.status,err);
+          }else{
+            console.log('Dyno restarted successfully!',response.data);
+          }
+      })
+  })
+  .catch(function (err) {
+  console.log('Failed to save the file:',err);
+  });
+}
+cron.schedule('0 17 * * *', async () => {
+  console.log('running a task every 17:00');
+  //close all client
+  closeAllSession(true);
+});
+
 //------
-// Handling message modification
-const msgBodyChecker = async (msgbody,penerima) => {
-  // Fired on all message creations, including your own
-  if (msgbody.startsWith("*-PORTAL D3pajak19-*")){
-    let uuid = uuidv4();
-    try{
-      msgbody = await queryMysql(penerima,msgbody);
-    } catch(error){
-      console.log(error)
-    }
-    return msgbody
-  }
-};
+
 const queryMysql = (penerima,msgbody) =>{
   return new Promise((resolve, reject)=>{
       let uuid = uuidv4();
@@ -88,7 +140,6 @@ const getAllSession = ()=>{
           description: data.description,
           ready: data.ready,
           number: data.number,
-          session: data.session
         })
       });
       return resolve(hasil)
@@ -105,7 +156,7 @@ const saveSession = async(id, description,session)=>{
 const updateSession = async(id,ready,number,session)=>{
   let sql = 'UPDATE `session` SET `ready` = "'+ready+'"';
   if (session!==undefined) sql += ', session = '+session+'';
-  if (number!==undefined) sql += ', number = "'+session+'"';
+  if (number!==undefined) sql += ', number = "'+number+'"';
   sql += ' WHERE `id` = "'+id+'";';
   return db_wa.query(sql, function (err, result) {
     if (err) throw err;
@@ -118,6 +169,29 @@ const removeSession = async(id) =>{
     if (err) throw err;
     return result
   })
+}
+const closeAllSession = async(restart=false) =>{
+  let sql = 'SELECT * FROM session';
+  const hasil = await new Promise((resolve, reject)=>{
+    db_wa.query(sql, async function (err, result) {
+      if (err) throw err;
+      return resolve(result)
+    })
+  })
+  console.log('closing all session')
+  let check = []
+  await hasil.forEach(async (data) => {
+    const indexClient = sessions.find(sess => sess.id == data.id)
+    console.log('Closing id:',data.id)
+    const client = indexClient.client
+    client.destroy().then(()=>{
+      check.push(data.id)
+      if (check.length == hasil.length){
+        console.log('All session closed')
+        if (restart) restartServer()
+      }
+    })
+  });
 }
 
 // const SESSIONS_FILE = './whatsapp-sessions.json';
@@ -146,10 +220,10 @@ const removeSession = async(id) =>{
 // const getSessionsFile = function() {
 //   return JSON.parse(fs.readFileSync(SESSIONS_FILE));
 // }
-
+let client = []
 const createSession = function(id, description,session) {
   console.log('Creating session: ' + id);
-  const client = new Client({
+  client = new Client({
     restartOnAuthFail: true,
     puppeteer: {
       headless: true,
@@ -164,13 +238,14 @@ const createSession = function(id, description,session) {
         '--disable-gpu'
       ],
     },
-    session:session
-    // authStrategy: new LocalAuth({
-    //   clientId: id
-    // })
+    authStrategy: new LocalAuth({
+      clientId: id,
+      dataPath: './data_session',
+    })
   });
 
   client.initialize();
+  updateSession(id,false);
 
   client.on('qr',(qr) => {
     console.log('QR RECEIVED FOR ID:',id, qr);
@@ -186,7 +261,7 @@ const createSession = function(id, description,session) {
     waSocket.emit('number', { id: id, number: client.info.wid.user });
     
     console.log(`Client ${id} is ready!`);
-    updateSession(id,true,number)
+    updateSession(id,true,client.info.wid.user)
 
     // Checking pending message in db
     let sql = "SELECT * FROM `log_message`WHERE status='pending'";
@@ -204,9 +279,8 @@ const createSession = function(id, description,session) {
     });
   });
 
-  client.on('authenticated', (session) => {
+  client.on('authenticated', () => {
     console.log(`Client ${id} is authenticated!`);
-    updateSession(id,false,null, session);
     waSocket.emit('authenticated', { id: id });
     waSocket.emit('message', { id: id, text: 'Whatsapp is authenticated!' });
   });
@@ -297,6 +371,9 @@ const createSession = function(id, description,session) {
             console.log("- Sukses "+verified+" | Gagal "+unverified+" -");
             client.sendMessage(msg.from, replyMsg);
           });
+          break;
+        case '/backup':
+          closeAllSession(true);
           break;
         default:
           // console.log(msg.type)
@@ -429,47 +506,80 @@ const handleGroupChat = async (msg) => {
 const init = async function(socket) {
   console.log('INIT')
   const savedSessions = await getAllSession();
-  console.log(savedSessions)
   if (savedSessions.length > 0) {
     if (socket) {
-      let sessions = [];
-      savedSessions.forEach(sess => {
-        sessions.push({
-          id: sess.id,
-          description: sess.description,
-          number: sess.number,
-        });
-      });
       socket.emit('init', savedSessions);
       //??
     } else {
       savedSessions.forEach(sess => {
         createSession(sess.id, sess.description,sess.session);
       });
+      serverReady = true
     }
   }
 }
-
-init();
-
+//DOWNLOAD SESSION
+console.log("Downloading session...");
+const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(response) {
+    if (response.statusCode === 200) {
+        const file = fs.createWriteStream("data-session.zip");
+        response.pipe(file);
+        // after download completed close filestream
+        file.on("finish", () => {
+            file.close();
+            console.log("Download Completed");
+            var sessionZip = new AdmZip("./data-session.zip");
+            const dir = './data_session/'
+            if (!fs.existsSync(dir)){
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            console.log('extracting file')
+            sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
+            fs.unlinkSync('./data_session.zip');
+            console.log('starting...');
+            fileSession = true
+            init();
+        });
+    }
+    else{
+        console.log("Error Downloading File Session, opening new session");
+        init();
+    }
+}).on('error', function(err) {
+    console.log("Error: " + err.message);
+});
 // Socket IO
 waSocket.on('connection', function(socket) {
-  init(socket);
-  socket.on('create-session', function(data) {
+  console.log('socket connected');
+  const checkSessionFile = setInterval(() => {
+    if (fileSession){
+      clearInterval(checkSessionFile);
+      init(socket);
+    }
+  },500);
+  socket.on('create-session', async function(data) {
     console.log('Create session: ' + data.id);
-    saveSession(data.id, data.description, null);
+    await saveSession(data.id, data.description, null);
     createSession(data.id, data.description,'');
   });
   socket.on('remove-session',function(data){
     console.log('Request remove session: ' + data.id);
     const indexClient = sessions.find(sess => sess.id == data.id)
     const client = indexClient.client
-    client.destroy();
-
     // Menghapus pada file sessions
     removeSession(data.id);
+    client.destroy().then(()=>{
+      fs.rmdirSync('./data_session/session-'+data.id, { recursive: true, force:true });
+      fs.rmdir('./data_session/session-'+data.id, {recursive: true,force: true}, (err) => {
 
-    waSocket.emit('remove-session', data.id);
+        if (err) {
+          return console.log("error occurred in deleting directory", err);
+        }
+        
+        console.log("Session deleted successfully");
+        waSocket.emit('remove-session', data.id);
+      })
+    });
   })
 });
 function whatsappGEThandler(req,res){
@@ -483,7 +593,10 @@ function whatsappGEThandler(req,res){
 
   async function cekNomor(req,res){
     if (!req.body.nomor){
-
+      return res.status(403).json({
+        status: 'failed',
+        message: 'Nomor tidak boleh kosong',
+      });
     }
     const sender = Math.floor(Math.random() * sessions.length);
     const client = sessions[sender].client;
@@ -546,7 +659,13 @@ function whatsappPOSThandler(req,res){
     let status_msg = "pending"
     let sender_number = 0;
     if (sessions.length > 0) {
-      const client = sessions[sender].client;
+      if (!serverReady){
+        return res.status(406).json({
+          status: 'failed',
+          message: 'Server is under maintenance',
+        });
+      }else{
+        const client = sessions[sender].client;
       sender_number = sessions[sender].number;
       let status_wa = await client.getState()
       console.log("STATUS",status_wa)
@@ -576,6 +695,8 @@ function whatsappPOSThandler(req,res){
           });
         });
       }
+      }
+      
     }else{
       console.log('Whatsapp API :','No Sessions')
       res.status(200).json({

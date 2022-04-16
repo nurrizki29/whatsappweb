@@ -1,8 +1,8 @@
 const { Client, Location, List, Buttons, LocalAuth } = require('whatsapp-web.js');
 const AdmZip = require("adm-zip");
+var FormData = require('form-data');
 const axios = require('axios');
 const { Readable } = require('stream');
-var FormData = require('form-data');
 const { stdout } = require('process');
 const fs = require('fs');
 const fileDownload = require('js-file-download');
@@ -37,17 +37,6 @@ const client = new Client({
           ],
      }
 });
-const bufferToStream = (binary) =>{
-
-    const readableInstanceStream = new Readable({
-      read() {
-        this.push(binary);
-        this.push(null);
-      }
-    });
-
-    return readableInstanceStream;
-}
 const file = fs.createWriteStream("data-session.zip");
 const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(response) {
     if (response.statusCode === 200) {
