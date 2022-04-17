@@ -519,6 +519,10 @@ const init = async function(socket) {
       });
       serverReady = true
     }
+  }else{
+    if (socket) {
+      socket.emit('init', []);
+    }
   }
 }
 //DOWNLOAD SESSION
