@@ -97,8 +97,9 @@ const restartServer = async() =>{
   console.log('Failed to save the file:',err);
   });
 }
-cron.schedule('0 17 * * *', async () => {
-  console.log('running a task every 17:00');
+cron.schedule('0 7 * * *', async () => {
+  serverReady = false
+  console.log('running a task every 17:00, starting backup data...');
   //close all client
   closeAllSession(true);
 });
@@ -508,6 +509,7 @@ const init = async function(socket) {
   const savedSessions = await getAllSession();
   if (savedSessions.length > 0) {
     if (socket) {
+      console.log(savedSessions); //pastikan session yg ditampilin sesuai sm data
       socket.emit('init', savedSessions);
       //??
     } else {
@@ -543,6 +545,7 @@ const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(r
     }
     else{
         console.log("Error Downloading File Session, opening new session");
+        fileSession=true
         init();
     }
 }).on('error', function(err) {
@@ -568,8 +571,10 @@ waSocket.on('connection', function(socket) {
     const client = indexClient.client
     // Menghapus pada file sessions
     removeSession(data.id);
-    client.destroy().then(()=>{
+    client.destroy().then(async()=>{
+      await sleep(500)
       fs.rmdirSync('./data_session/session-'+data.id, { recursive: true, force:true });
+      await sleep(500)
       fs.rmdir('./data_session/session-'+data.id, {recursive: true,force: true}, (err) => {
 
         if (err) {
@@ -698,7 +703,7 @@ function whatsappPOSThandler(req,res){
       }
       
     }else{
-      console.log('Whatsapp API :','No Sessions')
+      console.log('Whatsapp API Alert : nNo Sessions')
       res.status(200).json({
         status: 'no session',
       });

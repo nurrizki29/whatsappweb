@@ -29,18 +29,18 @@
 		<div class="form-container">
 			<div class="mb-3">
 				<label for="client-id" class="form-label">ID</label>
-				<input type="text" class="form-control" id="client-id" aria-describedby="client-id" placeholder="Masukkan ID">
+				<input type="text" disabled class="form-control form-new-client" id="client-id" aria-describedby="client-id" placeholder="Masukkan ID">
 				<div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
 			</div>
 			<div class="mb-3">
 				<label for="client-description" class="form-label">Deskripsi</label>
-				<textarea class="form-control" id="client-description" rows="3" placeholder="Masukkan deskripsi"></textarea>
+				<textarea class="form-control form-new-client" disabled id="client-description" rows="3" placeholder="Masukkan deskripsi"></textarea>
 			</div>
 			<button class="btn btn-primary add-client-btn">Tambah Client</button>
 		</div>
 		<hr>
-		<div class="client-container">
-			<div class="client hide">
+		<div class="template">
+			<div class="client col-sm-4 hide">
 				<h4 class="title"></h4>
 				<p>
 					<span class="description"></span></br>
@@ -89,6 +89,9 @@
 				
 			</div>
 		</div>
+		<div class="client-container row">
+			
+		</div>
 	</div>
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -101,44 +104,56 @@
 			$('.add-client-btn').click(function() {
 				var clientId = $('#client-id').val();
 				var clientDescription = $('#client-description').val();
-				var template = $('.client').first().clone()
-										   .removeClass('hide')
-										   .addClass(clientId);
-				template.find('.title').html(clientId);
-				template.find('#qrcode').attr('id', 'qrcode-' + clientId);
-				template.find('#qrcode-div').attr('id', 'qrcode-div-' + clientId);
-				template.find('#status0').attr('id', 'status0-' + clientId);
-				template.find('#status1').attr('id', 'status1-' + clientId);
-				template.find('#remove-client-btn').attr('data-client-id', clientId);
-				template.find('#remove-client-btn').attr('id', 'btn-remove-'+clientId);
-				template.find('#modal').attr('id', 'modal-'+clientId);
-				template.find('#modal-btn').attr('data-bs-target', '#modal-'+clientId);
-				template.find('#modal-btn').attr('id', 'modal-btn-'+clientId);
-				template.find('#collapseLog').attr('id', 'collapseLog-'+clientId);
-				template.find('.btn-log').attr('data-bs-target', '#collapseLog-'+clientId);
-				template.find('.description').html(clientDescription);
-				$('.client-container').append(template);
-				const pesan = "Connecting..."
-				$(`#status0-${clientId}`).html(pesan);
-				$(`#status1-${clientId}`).html(pesan);
-				socket.emit('create-session', {
-					id: clientId,
-					description: clientDescription
-				});
-				$('#btn-remove-'+clientId).click(function() {
-					var clientId = $(this).data('client-id');
-					$(this).data('disabled', true);
-					console.log('Removing client ',clientId)
-
-					socket.emit('remove-session', {
+				if (clientId === '' || clientDescription === '') {
+					alert('ID dan deskripsi harus diisi');
+				} else {
+					$('#client-id').val('');
+					$('#client-description').val('')
+					var template = $('.client').first().clone()
+											.removeClass('hide')
+											.addClass(clientId);
+					template.find('.title').html(clientId);
+					template.find('#qrcode').attr('id', 'qrcode-' + clientId);
+					template.find('#qrcode-div').attr('id', 'qrcode-div-' + clientId);
+					template.find('#status0').attr('id', 'status0-' + clientId);
+					template.find('#status1').attr('id', 'status1-' + clientId);
+					template.find('#remove-client-btn').attr('data-client-id', clientId);
+					template.find('#remove-client-btn').attr('id', 'btn-remove-'+clientId);
+					template.find('#modal').attr('id', 'modal-'+clientId);
+					template.find('#modal-btn').attr('data-bs-target', '#modal-'+clientId);
+					template.find('#modal-btn').attr('id', 'modal-btn-'+clientId);
+					template.find('#collapseLog').attr('id', 'collapseLog-'+clientId);
+					template.find('.btn-log').attr('data-bs-target', '#collapseLog-'+clientId);
+					template.find('.description').html(clientDescription);
+					$('.client-container').append(template);
+					const pesan = "Connecting..."
+					$(`#status0-${clientId}`).html(pesan);
+					$(`#status1-${clientId}`).html(pesan);
+					socket.emit('create-session', {
 						id: clientId,
+						description: clientDescription
 					});
-				});
+					$('#btn-remove-'+clientId).click(function() {
+						var clientId = $(this).data('client-id');
+						$(this).data('disabled', true);
+						console.log('Removing client ',clientId)
+						$(`.client.${clientId} .logs`).append($('<li>').text('Removing Client...'));
+						$(`#status0-${clientId}`).html('Removing Client...');
+						$(`#status1-${clientId}`).html('Removing Client...');
+						$('#btn-remove-'+clientId).attr('disabled', true);
+						$('#modal-btn-'+clientId).attr('disabled', true);
+						socket.emit('remove-session', {
+							id: clientId,
+						});
+					});
+				}
 			});
 
 			socket.on('init', function(data) {
 				$('.client-container .client').not(':first').remove();
 				console.log(data);
+				$('#client-id').removeAttr('disabled');
+				$('#client-description').removeAttr('disabled');
 				for (var i = 0; i < data.length; i++) {
 					var session = data[i];
 
@@ -163,7 +178,7 @@
 					$('.client-container').append(template);
 					var myModal = new bootstrap.Modal(document.getElementById('modal-'+clientId))
 					let pesan = 'Whatsapp is ready!'
-					if (session.ready) {
+					if (session.ready==='true') {
 						$(`.client.${session.id} .number`).html("0"+session.number.slice(2));
 						$(`.client.${session.id} .logs`).append($('<li>').text('Whatsapp is ready!'));
 					} else {
@@ -178,7 +193,11 @@
 					var clientId = $(this).data('client-id');
 					$(this).data('disabled', true);
 					console.log('Removing client ',clientId)
-					$(`.client.${session.id} .logs`).append($('<li>').text('Removing Client...'));
+					$(`.client.${clientId} .logs`).append($('<li>').text('Removing Client...'));
+					$(`#status0-${clientId}`).html('Removing Client...');
+					$(`#status1-${clientId}`).html('Removing Client...');
+					$('#btn-remove-'+clientId).attr('disabled', true);
+					$('#modal-btn-'+clientId).attr('disabled', true);
 					socket.emit('remove-session', {
 						id: clientId,
 					});

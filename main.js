@@ -3,6 +3,9 @@ const rateLimit = require('express-rate-limit')
 const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const jwt = require("jsonwebtoken");
+const session = require('express-session');
+const path = require('path');
+const mysql = require('mysql');
 const port = process.env.PORT || 8000;
 
 const {app,server,io,socketIO} = require('./socket.js')
@@ -44,6 +47,13 @@ const invalidAPIrequest = (req, res) => {
   }))
 }
 
+const connection = mysql.createConnection({
+	host: "103.28.53.179",
+  user: "nurizweb_navicat",
+  password: "sp@8cfXKJKub3Y8",
+  database: "nurizweb_whatsappapi"
+});
+
 // app.use(function(req,res,next){
 //   console.log(req.socket.remoteAddress)
 //   next()
@@ -51,10 +61,19 @@ const invalidAPIrequest = (req, res) => {
 
 app.use(cors());
 
+app.use(session({
+	secret: 'secret',
+	resave: true,
+	saveUninitialized: true,
+  cookie: {
+    maxAge: 2 * 60 * 60 * 1000
+  }
+}));
+
 app.use(express.urlencoded({
 extended: true
 }));
-
+app.use(express.static(path.join(__dirname, 'static')));
 app.use(fileUpload({
   debug: false
 }));
@@ -92,9 +111,15 @@ app.use('/api',async(req, res, next) => {
 app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
 app.get('/ip', (request, response) => response.send(request.ip))
 app.get('/whatsapp', (req, res) => {
-  res.sendFile('index-multiple-account.html', {
-    root: __dirname
-  });
+  if (req.session.loggedin) {
+		// Output username
+    res.sendFile('index-multiple-account.html', {
+      root: __dirname
+    });
+	} else {
+		// Not logged in
+		res.sendFile(path.join(__dirname + '/login.html'));
+	}  
 });
 app.get('/', (req, res) => {
   res.send('ok')
@@ -127,6 +152,33 @@ app.use('/api/*',(req,res)=>{
     invalidAPIrequest(req,res);
   }
 })
+app.post('/auth', function(request, response) {
+	// Capture the input fields
+	let username = request.body.username;
+	let password = request.body.password;
+	// Ensure the input fields exists and are not empty
+	if (username && password) {
+		// Execute SQL query that'll select the account from the database based on the specified username and password
+		connection.query('SELECT * FROM login WHERE username = ? AND password = ?', [username, password], function(error, results, fields) {
+			// If there is an issue with the query, output the error
+			if (error) throw error;
+			// If the account exists
+			if (results.length > 0) {
+				// Authenticate the user
+				request.session.loggedin = true;
+				request.session.username = username;
+				// Redirect to home page
+				response.redirect(request.get('referer'));
+			} else {
+				response.send('Incorrect Username and/or Password!');
+			}			
+			response.end();
+		});
+	} else {
+		response.send('Please enter Username and Password!');
+		response.end();
+	}
+});
 app.use('*', function(req, res){
   res.status(404).send(JSON.stringify({
     status: 'error',
