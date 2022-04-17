@@ -160,7 +160,7 @@ app.get('/whatsapp', async (req, res) => {
 app.get('/', (req, res) => {
   res.send('ok')
 });
-app.get('/login',(req,res)=>{
+app.get('/login',async (req,res)=>{
   const cek = await checkLogin(req, res)
   if (cek==true) {
     if (req.cookies.redirect) {
