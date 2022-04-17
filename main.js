@@ -153,12 +153,25 @@ app.get('/whatsapp', async (req, res) => {
 	} else {
 		// Not logged in
     console.log('Must Sign In')
-		res.sendFile(path.join(__dirname + '/login.html'));
+    res.cookie('redirect', '/whatsapp', {httpOnly: true});
+    res.redirect('/login');
 	}  
 });
 app.get('/', (req, res) => {
   res.send('ok')
 });
+app.get('/login',(req,res)=>{
+  const cek = await checkLogin(req, res)
+  if (cek==true) {
+    if (req.cookies.redirect) {
+      res.redirect(req.cookies.redirect)
+    } else {
+      res.redirect('/whatsapp')
+    }
+  }else{
+    res.sendFile(path.join(__dirname + '/login.html'));
+  }
+})
 // Public API
 app.get('/publicapi/*',(req,res)=>{
   switch(req.params[0]){

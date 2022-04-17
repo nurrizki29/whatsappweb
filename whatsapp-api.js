@@ -543,20 +543,20 @@ const init = async function(socket) {
 console.log("Downloading session...");
 const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(response) {
     if (response.statusCode === 200) {
-        const file = fs.createWriteStream("data-session.zip");
+        const file = fs.createWriteStream("data_session.zip");
         response.pipe(file);
         // after download completed close filestream
         file.on("finish", () => {
             file.close();
             console.log("Download Completed");
-            var sessionZip = new AdmZip("./data-session.zip");
+            var sessionZip = new AdmZip("./data_session.zip");
             const dir = './data_session/'
             if (!fs.existsSync(dir)){
                 fs.mkdirSync(dir, { recursive: true });
             }
             console.log('extracting file')
             sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
-            fs.unlinkSync('./data-session.zip');
+            fs.unlinkSync('./data_session.zip');
             console.log('starting...');
             fileSession = true
             init();
@@ -595,17 +595,18 @@ waSocket.on('connection', function(socket) {
     removeSession(data.id);
     client.destroy().then(async()=>{
       await sleep(500)
-      fs.rmdirSync('./data_session/session-'+data.id, { recursive: true, force:true });
-      await sleep(500)
-      fs.rmdir('./data_session/session-'+data.id, {recursive: true,force: true}, (err) => {
-
-        if (err) {
-          return console.log("error occurred in deleting directory", err);
-        }
-        
-        console.log("Session deleted successfully");
-        waSocket.emit('remove-session', data.id);
-      })
+      if (fs.existsSync('./data_session/session-'+data.id)) {
+        fs.rmdirSync('./data_session/session-'+data.id, { recursive: true, force:true });
+        await sleep(500)
+        fs.rmdir('./data_session/session-'+data.id, {recursive: true,force: true}, (err) => {
+          if (err) {
+            return console.log("error occurred in deleting directory", err);
+          }
+          
+          console.log("Session deleted successfully");
+          waSocket.emit('remove-session', data.id);
+        })
+      }
     });
   })
 });
