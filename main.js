@@ -145,12 +145,14 @@ app.get('/whatsapp', async (req, res) => {
   const cek = await checkLogin(req, res)
   console.log('Logged on : ',cek)
   if (cek==true) {
+    console.log('Logged ON')
 		// Output username
     res.sendFile('index-multiple-account.html', {
       root: __dirname
     });
 	} else {
 		// Not logged in
+    console.log('Must Sign In')
 		res.sendFile(path.join(__dirname + '/login.html'));
 	}  
 });
