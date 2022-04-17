@@ -555,12 +555,15 @@ const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(r
 // Socket IO
 waSocket.on('connection', function(socket) {
   console.log('socket connected');
-  const checkSessionFile = setInterval(() => {
-    if (fileSession){
-      clearInterval(checkSessionFile);
-      init(socket);
-    }
-  },500);
+  if (fileSession) init(socket);
+  else{
+    const checkSessionFile = setInterval(() => {
+      if (fileSession){
+        clearInterval(checkSessionFile);
+        init(socket);
+      }
+    },500);
+  }
   socket.on('create-session', async function(data) {
     console.log('Create session: ' + data.id);
     await saveSession(data.id, data.description, null);

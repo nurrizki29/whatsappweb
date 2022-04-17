@@ -55,19 +55,17 @@ const connection = mysql.createConnection({
   database: "nurizweb_whatsappapi"
 });
 
-const checkLogin = function (req, res) {
-  return new Promise((resolve, reject)=>{
-    if (req.cookies.token){
-      try{
-        const decoded = jwt.verify(req.cookies.token, secretKey);
-        if (decoded.userId == undefined) return resolve(false)
-        else resolve(true)
-       }catch(err){
-          console.error(err)
-         return resolve(false)
-       }
-    }else return resolve(false)
-  });
+const checkLogin =  (req) =>{
+  if (req.cookies.token){
+    try{
+      const decoded = jwt.verify(req.cookies.token, secretKey);
+      if (decoded.userId == undefined) return false
+      else return true
+      }catch(err){
+        console.error(err)
+        return false
+      }
+  }else return false
 }
 
 // app.use(function(req,res,next){
@@ -94,6 +92,22 @@ app.use(express.static(path.join(__dirname, 'static')));
 app.use(fileUpload({
   debug: false
 }));
+app.use(function (req, res, next) {
+  req.isLoggedin = () => {
+       //passport-local
+      if(req.cookies.token) {
+        try{
+          const decoded = jwt.verify(req.cookies.token, secretKey);
+          if (decoded.userId == undefined) return resolve(false)
+          else resolve(true)
+         }catch(err){
+            console.error(err)
+           return resolve(false)
+         }
+      }else return false;
+  };
+  next();
+});
 app.use('/uptime', (req, res) => {
   res.send('Server is up and running');
 })
@@ -128,7 +142,7 @@ app.use('/api',async(req, res, next) => {
 app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
 app.get('/ip', (request, response) => response.send(request.ip))
 app.get('/whatsapp', async (req, res) => {
-  const cek = checkLogin(req, res)
+  const cek = await checkLogin(req, res)
   console.log('Logged on : ',cek)
   if (cek) {
 		// Output username
