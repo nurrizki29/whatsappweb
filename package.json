@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node main.js",
     "start:dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "git push heroku master"
   },
   "keywords": [
     "whatsapp-api",
