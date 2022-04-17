@@ -221,10 +221,9 @@ const closeAllSession = async(restart=false) =>{
 // const getSessionsFile = function() {
 //   return JSON.parse(fs.readFileSync(SESSIONS_FILE));
 // }
-let client = []
 const createSession = function(id, description,session) {
   console.log('Creating session: ' + id);
-  client = new Client({
+  const client = new Client({
     restartOnAuthFail: true,
     puppeteer: {
       headless: true,
@@ -256,27 +255,42 @@ const createSession = function(id, description,session) {
   });
 
   client.on('ready', () => {
-    waSocket.emit('ready', { id: id });
-    waSocket.emit('message', { id: id, text: 'Whatsapp is ready!' });
-    waSocket.emit('number', { id: id, number: client.info.wid.user });
-    
-    console.log(`Client ${id} is ready!`);
-    updateSession(id,true,client.info.wid.user)
+    let retryMax = 5;
+    const afterReady = () => {
+      try {
+        console.log(client.info)
+        waSocket.emit('ready', { id: id });
+        waSocket.emit('message', { id: id, text: 'Whatsapp is ready!' });
+        waSocket.emit('number', { id: id, number: client.info.wid.user });
+        
+        console.log(`Client ${id} is ready!`);
+        updateSession(id,true,client.info.wid.user)
 
-    // Checking pending message in db
-    let sql = "SELECT * FROM `log_message`WHERE status='pending'";
-    db_wa.query(sql, function (err, result) {
-      if (err) throw err;
-      result.forEach(data => {
-        const number = phoneNumberFormatter(data.penerima);
-        client.sendMessage(number, data.pesan);
-        let sql = "UPDATE `log_message` SET `status`='success' WHERE `id`='"+data.id+"'";
+        // Checking pending message in db
+        let sql = "SELECT * FROM `log_message`WHERE status='pending'";
         db_wa.query(sql, function (err, result) {
           if (err) throw err;
-          console.log("Log message updated on id="+data.id);
+          result.forEach(data => {
+            const number = phoneNumberFormatter(data.penerima);
+            client.sendMessage(number, data.pesan);
+            let sql = "UPDATE `log_message` SET `status`='success' WHERE `id`='"+data.id+"'";
+            db_wa.query(sql, function (err, result) {
+              if (err) throw err;
+              console.log("Log message updated on id="+data.id);
+            });
+          });
         });
-      });
-    });
+      } catch (error) {
+        console.log(error);
+        if (retryMax > 0) {
+          console.log('Max retries reached, please delete and reconnect client manually');
+          return
+        }
+        console.log('Retry in 5 seconds...');
+        setTimeout(() => {afterReady()},5000)
+      }
+    }
+    afterReady();
   });
 
   client.on('authenticated', () => {

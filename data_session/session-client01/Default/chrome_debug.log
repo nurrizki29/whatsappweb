@@ -1,1 +1,4 @@
-[0417/235406.900:ERROR:dxva_video_decode_accelerator_win.cc(1427)] DXVAVDA fatal error: Could not load mf.dll: The specified module could not be found. (0x7E)
+[0418/001535.362:ERROR:dxva_video_decode_accelerator_win.cc(1427)] DXVAVDA fatal error: Could not load mf.dll: The specified module could not be found. (0x7E)
+[0418/001603.236:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
+[0418/001603.276:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
+[0418/001603.279:INFO:CONSOLE(1)] "Uncaught (in promise) TypeError: Failed to execute 'put' on 'Cache': Partial response (status code 206) is unsupported", source: https://web.whatsapp.com/serviceworker.js (1)
