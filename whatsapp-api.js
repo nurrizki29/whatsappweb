@@ -97,7 +97,7 @@ const restartServer = async() =>{
   console.log('Failed to save the file:',err);
   });
 }
-cron.schedule('0 7 * * *', async () => {
+cron.schedule('0 17 * * *', async () => {
   serverReady = false
   console.log('running a task every 17:00, starting backup data...');
   //close all client
