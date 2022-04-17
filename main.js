@@ -57,11 +57,13 @@ const connection = mysql.createConnection({
 
 const checkLogin = async (req, res) => {
   if (req.cookies.token){
+    console.log('token found')
     try{
       decoded = jwt.verify(req.cookies.token, secretKey);
       if (decoded.userId) return true
       else false
      }catch(err){
+        console.error(err)
        return false;
      }
   }else return false
