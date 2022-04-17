@@ -517,13 +517,13 @@ const init = async function(socket) {
       savedSessions.forEach(sess => {
         createSession(sess.id, sess.description,sess.session);
       });
-      serverReady = true
     }
   }else{
     if (socket) {
       socket.emit('init', []);
     }
   }
+  serverReady = true
 }
 //DOWNLOAD SESSION
 console.log("Downloading session...");

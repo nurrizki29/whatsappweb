@@ -144,7 +144,7 @@ app.get('/ip', (request, response) => response.send(request.ip))
 app.get('/whatsapp', async (req, res) => {
   const cek = await checkLogin(req, res)
   console.log('Logged on : ',cek)
-  if (cek) {
+  if (cek==true) {
 		// Output username
     res.sendFile('index-multiple-account.html', {
       root: __dirname
