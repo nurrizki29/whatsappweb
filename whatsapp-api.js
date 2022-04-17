@@ -703,7 +703,7 @@ function whatsappPOSThandler(req,res){
       }
       
     }else{
-      console.log('Whatsapp API Alert : nNo Sessions')
+      console.log('Whatsapp API Alert : No Sessions')
       res.status(200).json({
         status: 'no session',
       });

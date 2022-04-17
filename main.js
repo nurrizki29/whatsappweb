@@ -5,6 +5,7 @@ const fileUpload = require('express-fileupload');
 const jwt = require("jsonwebtoken");
 const session = require('express-session');
 const path = require('path');
+const cookieParser = require("cookie-parser");
 const mysql = require('mysql');
 const port = process.env.PORT || 8000;
 
@@ -54,19 +55,32 @@ const connection = mysql.createConnection({
   database: "nurizweb_whatsappapi"
 });
 
+const checkLogin = async (req, res) => {
+  if (req.cookies.token){
+    try{
+      decoded = jwt.verify(req.cookies.token, secretKey);
+      if (decoded.userId) return true
+      else false
+     }catch(err){
+       return false;
+     }
+  }else return false
+}
+
 // app.use(function(req,res,next){
 //   console.log(req.socket.remoteAddress)
 //   next()
 // });
 
 app.use(cors());
+app.use(cookieParser());
 
 app.use(session({
 	secret: 'secret',
 	resave: true,
 	saveUninitialized: true,
   cookie: {
-    maxAge: 30 * 24 * 60 * 60 * 1000
+    maxAge: 30 * 24 * 60 * 60 * 1000,
   }
 }));
 
@@ -110,8 +124,8 @@ app.use('/api',async(req, res, next) => {
 //testing number of proxy
 app.set('trust proxy', 2) //ubah angka sampai result di /ip sesuai dengan ip sebenarnya
 app.get('/ip', (request, response) => response.send(request.ip))
-app.get('/whatsapp', (req, res) => {
-  if (req.session.loggedin) {
+app.get('/whatsapp', async (req, res) => {
+  if (await checkLogin(req, res)) {
 		// Output username
     res.sendFile('index-multiple-account.html', {
       root: __dirname
@@ -165,8 +179,8 @@ app.post('/auth', function(request, response) {
 			// If the account exists
 			if (results.length > 0) {
 				// Authenticate the user
-				request.session.loggedin = true;
-				request.session.username = username;
+        jwt.sign
+        response.cookie('token',jwt.sign({userId:results[0].id},secretKey), { maxAge: 2*60*60*1000, httpOnly: true });
 				// Redirect to home page
 				response.redirect(request.get('referer'));
 			} else {
