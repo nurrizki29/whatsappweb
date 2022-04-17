@@ -110,13 +110,12 @@ const queryMysql = (penerima,msgbody) =>{
   return new Promise((resolve, reject)=>{
       let uuid = uuidv4();
       let sql = "INSERT INTO `notifikasi` (`id`, `penerima`,`pesan`,`created_at`, `updated_at`) VALUES ('"+uuid+"','"+penerima+"','"+msgbody+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
-      db_portald3pajak.query(sql, function (err, result) {
+      db_d3pjk.query(sql, function (err, result) {
           if (err) return reject(err);
           console.log("Database created");
+          msgbody += "\n\n----------\nKlik link berikut untuk cek keaslian pesan ini\nhttps://portal.d3pajak19.com/ceknotif/"+uuid;
+          return resolve(msgbody);
       });
-      msgbody += "\n\n----------\nKlik link berikut untuk cek keaslian pesan ini\nhttps://portal.d3pajak19.com/ceknotif/"+uuid;
-      return resolve(msgbody);
-      
   });
 };
 //----------

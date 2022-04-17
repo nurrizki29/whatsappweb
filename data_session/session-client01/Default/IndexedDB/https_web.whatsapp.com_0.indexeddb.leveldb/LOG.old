@@ -1,0 +1,23 @@
+2022/04/17-17:44:21.649 27 Creating DB /app/data_session/session-client01/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2022/04/17-17:44:21.655 27 Reusing MANIFEST /app/data_session/session-client01/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2022/04/17-17:50:35.879 5e Level-0 table #5: started
+2022/04/17-17:50:35.906 5e Level-0 table #5: 1182289 bytes OK
+2022/04/17-17:50:35.911 5e Delete type=0 #3
+2022/04/17-17:50:43.174 5c Level-0 table #7: started
+2022/04/17-17:50:43.201 5c Level-0 table #7: 1229121 bytes OK
+2022/04/17-17:50:43.203 5c Delete type=0 #4
+2022/04/17-17:50:43.228 5d Compacting 1@1 + 1@2 files
+2022/04/17-17:50:43.304 5d Generated table #8@1: 20495 keys, 1177029 bytes
+2022/04/17-17:50:43.304 5d Compacted 1@1 + 1@2 files => 1177029 bytes
+2022/04/17-17:50:43.305 5d compacted to: files[ 0 0 1 0 0 0 0 ]
+2022/04/17-17:50:43.305 5d Delete type=2 #5
+2022/04/17-17:50:43.305 5d Delete type=2 #7
+2022/04/17-17:56:34.404 25 Level-0 table #10: started
+2022/04/17-17:56:34.422 25 Level-0 table #10: 1023699 bytes OK
+2022/04/17-17:56:34.425 25 Delete type=0 #6
+2022/04/17-17:59:12.360 25 Compacting 1@1 + 1@2 files
+2022/04/17-17:59:12.410 25 Generated table #11@1: 35610 keys, 1596015 bytes
+2022/04/17-17:59:12.410 25 Compacted 1@1 + 1@2 files => 1596015 bytes
+2022/04/17-17:59:12.412 25 compacted to: files[ 0 0 1 0 0 0 0 ]
+2022/04/17-17:59:12.412 25 Delete type=2 #10
+2022/04/17-17:59:12.412 25 Delete type=2 #8
