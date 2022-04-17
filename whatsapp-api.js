@@ -246,7 +246,6 @@ const createSession = function(id, description,session) {
   });
 
   client.initialize();
-  updateSession(id,false);
 
   client.on('qr',(qr) => {
     console.log('QR RECEIVED FOR ID:',id, qr);
@@ -509,10 +508,12 @@ const init = async function(socket) {
   const savedSessions = await getAllSession();
   if (savedSessions.length > 0) {
     if (socket) {
-      console.log(savedSessions); //pastikan session yg ditampilin sesuai sm data
+      // console.log(savedSessions); //pastikan session yg ditampilin sesuai sm data
       socket.emit('init', savedSessions);
       //??
     } else {
+      let sql = 'UPDATE `session` SET `ready` = "false" WHERE ready="true"';
+      db_wa.query(sql, function (err, result) {})
       savedSessions.forEach(sess => {
         createSession(sess.id, sess.description,sess.session);
       });
