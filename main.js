@@ -60,6 +60,7 @@ const checkLogin = async (req, res) => {
     console.log('token found', req.cookies.token)
     try{
       const decoded = jwt.verify(req.cookies.token, secretKey);
+      console.log(decoded)
       if (decoded.userId) return true
       else false
      }catch(err){
