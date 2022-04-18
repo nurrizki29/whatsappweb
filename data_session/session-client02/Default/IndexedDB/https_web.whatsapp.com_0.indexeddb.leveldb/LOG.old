@@ -1,5 +1,0 @@
-2022/04/17-17:50:56.896 7f Creating DB /app/data_session/session-client02/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
-2022/04/17-17:50:56.902 7f Reusing MANIFEST /app/data_session/session-client02/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2022/04/17-17:52:08.588 99 Level-0 table #5: started
-2022/04/17-17:52:08.611 99 Level-0 table #5: 1137301 bytes OK
-2022/04/17-17:52:08.613 99 Delete type=0 #3

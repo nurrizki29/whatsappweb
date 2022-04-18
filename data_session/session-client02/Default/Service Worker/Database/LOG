@@ -1,3 +1,2 @@
-2022/04/18-01:15:11.717 360c Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Service Worker\Database/MANIFEST-000001
-2022/04/18-01:15:11.717 360c Recovering log #3
-2022/04/18-01:15:11.717 360c Reusing old log D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Service Worker\Database/000003.log 
+2022/04/18-12:51:19.844 473c Creating DB D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Service Worker\Database since it was missing.
+2022/04/18-12:51:20.100 473c Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Service Worker\Database/MANIFEST-000001

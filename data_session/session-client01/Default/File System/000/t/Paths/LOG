@@ -1,2 +1,2 @@
-2022/04/17-17:44:22.265 33 Creating DB /app/data_session/session-client01/Default/File System/000/t/Paths since it was missing.
-2022/04/17-17:44:22.272 33 Reusing MANIFEST /app/data_session/session-client01/Default/File System/000/t/Paths/MANIFEST-000001
+2022/04/18-12:51:22.066 4484 Creating DB D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client01\Default\File System\000\t\Paths since it was missing.
+2022/04/18-12:51:22.167 4484 Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client01\Default\File System\000\t\Paths/MANIFEST-000001

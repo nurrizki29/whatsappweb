@@ -1,3 +1,2 @@
-2022/04/18-01:15:11.719 360c Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Local Storage\leveldb/MANIFEST-000001
-2022/04/18-01:15:11.720 360c Recovering log #3
-2022/04/18-01:15:11.720 360c Reusing old log D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Local Storage\leveldb/000003.log 
+2022/04/18-12:51:13.364 d4 Creating DB D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Local Storage\leveldb since it was missing.
+2022/04/18-12:51:13.532 d4 Reusing MANIFEST D:\NodeJS\whatsapp-api-tutorial-master\data_session\session-client02\Default\Local Storage\leveldb/MANIFEST-000001

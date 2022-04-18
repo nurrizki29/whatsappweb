@@ -619,7 +619,7 @@ function whatsappGEThandler(req,res){
   }
 
   async function cekNomor(req,res){
-    if (!req.body.nomor){
+    if (!req.query.nomor){
       return res.status(403).json({
         status: 'failed',
         message: 'Nomor tidak boleh kosong',
