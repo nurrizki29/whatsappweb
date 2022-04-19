@@ -1,198 +1,225 @@
-require('dotenv').config();
-const { Client, MessageMedia, LocalAuth,Buttons,List } = require('whatsapp-web.js');
-const express = require('express');
-const {app,server,io} = require('./socket.js')
-const qrcode = require('qrcode');
-const fs = require('fs');
-const { phoneNumberFormatter } = require('./helpers/formatter');
-const fileUpload = require('express-fileupload');
-const axios = require('axios');
-const cron = require('node-cron');
-const fileDownload = require('js-file-download');
-const https = require('https');
+require("dotenv").config();
+const {
+  Client,
+  MessageMedia,
+  LocalAuth,
+  Buttons,
+  List,
+} = require("whatsapp-web.js");
+const express = require("express");
+const { app, server, io } = require("./socket.js");
+const qrcode = require("qrcode");
+const fs = require("fs");
+const { phoneNumberFormatter } = require("./helpers/formatter");
+const path = require("path");
+const axios = require("axios");
+const cron = require("node-cron");
+const https = require("https");
 const AdmZip = require("adm-zip");
-var FormData = require('form-data');
+var FormData = require("form-data");
 
-const mime = require('mime-types');
-const mysql = require('mysql');
-const { v4: uuidv4 } = require('uuid');
-const rateLimit = require('express-rate-limit')
-const cors = require('cors');
+const mime = require("mime-types");
+const mysql = require("mysql");
+const { v4: uuidv4 } = require("uuid");
 const jwt = require("jsonwebtoken");
-const {secretKey} = require('./main.js');
-
-const waSocket = io.of('/whatsapp');
-
+const { secretKey } = require("./main.js");
+const { gdrive, cariSessionFile } = require("./gdrive_api.js");
+const waSocket = io.of("/whatsapp");
 const port = process.env.PORT || 8000;
 
+//GOOGLE APIS
+
 var serverReady = false;
-var fileSession = false
+var fileSession = false;
 
 //Initializing db connection
 var db_portald3pajak = mysql.createPool({
   host: "103.28.53.179",
   user: "nurizweb_navicat",
   password: "sp@8cfXKJKub3Y8",
-  database: "nurizweb_whatsappapi"
+  database: "nurizweb_whatsappapi",
 });
 var db_wa = mysql.createPool({
   host: "103.28.53.179",
   user: "nurizweb_navicat",
   password: "sp@8cfXKJKub3Y8",
-  database: "nurizweb_whatsappapi"
+  database: "nurizweb_whatsappapi",
 });
 
 var db_d3pjk = mysql.createPool({
   host: "103.28.53.92",
   user: "dpajakco_portal",
   password: "19d3pajak",
-  database: "dpajakco_portal"
+  database: "dpajakco_portal",
 });
 //CLEAR SESSION FOLDER IF EXIST
-if (fs.existsSync('./data_session/')) fs.rmdirSync('./data_session/', {recursive: true})
-if (fs.existsSync('./data_session.zip')) fs.unlinkSync('./data_session.zip');
-
+if (fs.existsSync("./data_session/"))
+  fs.rmdirSync("./data_session/", { recursive: true });
+if (fs.existsSync("./data_session.zip")) fs.unlinkSync("./data_session.zip");
 
 //CRONJOB BACKUP
-const restartServer = async() =>{
-  var zip = new AdmZip()
-  zip.addLocalFolder('./data_session');
-  zip.writeZip('./data_session.zip');
-  console.log('Compression Success');
-  const params = new FormData({ maxDataSize: 1009715200 });
-  const file = fs.createReadStream('./data_session.zip'); //too big to upload
-  params.append('session',file);
+const restartServer = async () => {
+  var zip = new AdmZip();
+  zip.addLocalFolder("./data_session");
+  zip.writeZip("./data_session.zip");
+  console.log("Compression Success");
+  const sessionZipPath = path.resolve(__dirname, "./data_session.zip");
+  let fileId = await cariSessionFile();
+  if (fileId) {
+    const deleteFile = await gdrive.files.delete({ fileId });
+    if ((deleteFile.data = "")) {
+      console.log("Old backup session deleted");
+    }
+  }
+  console.log("Uploading backup file to google gdrive");
+  await gdrive.files
+    .create({
+      requestBody: {
+        name: "data_session.zip",
+        mimeType: mime.lookup(sessionZipPath),
+        parents: ["1zl3xCmn2SxVvTHeP9IZpHX7QYeHcBy1Z"],
+      },
+      media: {
+        mimeType: mime.lookup(sessionZipPath),
+        body: fs.createReadStream(sessionZipPath),
+      },
+    })
+    .then((res) => {
+      fileId = res.data.id;
+      console.log("Backup session uploaded with id:", fileId);
+    })
+    .catch((err) => {
+      console.error("Whatsapp API Error : ", err);
+    });
   axios({
-      method: 'POST',
-      url: 'https://wa.nuriz.web.id/save_session.php',
-      // url: 'https://webhook.site/4247af82-6ced-4d4a-b767-47a25f30a46f?',
-      data: params,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-      headers: {
-          // origin: 'api.nuriz.id',
-          ...params.getHeaders()
-      }
-  }).then(function (response) {
-      // console.log(response);
-      console.log('File uploaded successfully!',response.data);
-      // fs.rmSync('./data_session/session.zip',{ recursive: true, force: true });
-      // fs.rmSync('./data_session/session',{ recursive: true, force: true });
-      axios({
-          url: 'https://api.heroku.com/apps/whatsapp-api-nuriz/dynos',
-          method: 'DELETE',
-          headers:{
-              'Authorization': 'Bearer '+process.env.HEROKU_API_KEY,
-              'Accept':'application/vnd.heroku+json; version=3`'
-          }
-      }).then(function (response,err) {
-          if (response.status!==202){
-            console.log(response.status,err);
-          }else{
-            console.log('Dyno restarted successfully!',response.data);
-          }
-      })
-  })
-  .catch(function (err) {
-  console.log('Failed to save the file:',err);
+    url: "https://api.heroku.com/apps/whatsapp-api-nuriz/dynos",
+    method: "DELETE",
+    headers: {
+      Authorization: "Bearer " + process.env.HEROKU_API_KEY,
+      Accept: "application/vnd.heroku+json; version=3`",
+    },
+  }).then(function (response, err) {
+    if (response.status !== 202) {
+      console.log(response.status, err);
+    } else {
+      console.log("Dyno restarted successfully!", response.data);
+    }
   });
-}
-cron.schedule('0 17 * * *', async () => {
-  serverReady = false
-  console.log('running a task every 17:00, starting backup data...');
+};
+cron.schedule("0 17 * * *", async () => {
+  serverReady = false;
+  console.log("running backup every 17:00 UTC, starting backup data...");
   //close all client
   closeAllSession(true);
 });
 
 //------
 
-const queryMysql = (penerima,msgbody) =>{
-  return new Promise((resolve, reject)=>{
-      let uuid = uuidv4();
-      let sql = "INSERT INTO `notifikasi` (`id`, `penerima`,`pesan`,`created_at`, `updated_at`) VALUES ('"+uuid+"','"+penerima+"','"+msgbody+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
-      db_d3pjk.query(sql, function (err, result) {
-          if (err) return reject(err);
-          console.log("Database created");
-          msgbody += "\n\n----------\nKlik link berikut untuk cek keaslian pesan ini\nhttps://portal.d3pajak19.com/ceknotif/"+uuid;
-          return resolve(msgbody);
-      });
+const queryMysql = (penerima, msgbody) => {
+  return new Promise((resolve, reject) => {
+    let uuid = uuidv4();
+    let sql =
+      "INSERT INTO `notifikasi` (`id`, `penerima`,`pesan`,`created_at`, `updated_at`) VALUES ('" +
+      uuid +
+      "','" +
+      penerima +
+      "','" +
+      msgbody +
+      "',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+    db_d3pjk.query(sql, function (err, result) {
+      if (err) return reject(err);
+      console.log("Database created");
+      msgbody +=
+        "\n\n----------\nKlik link berikut untuk cek keaslian pesan ini\nhttps://portal.d3pajak19.com/ceknotif/" +
+        uuid;
+      return resolve(msgbody);
+    });
   });
 };
 //----------
 
 const invalidAPIrequest = (req, res) => {
-  res.status(404).send(JSON.stringify({
-    status: 'error',
-    message: 'Invalid Whatsapp API'
-  }))
-}
+  res.status(404).send(
+    JSON.stringify({
+      status: "error",
+      message: "Invalid Whatsapp API",
+    })
+  );
+};
 
 const sessions = [];
-const getAllSession = ()=>{
-  let sql = 'SELECT * FROM session';
-  return new Promise((resolve, reject)=>{
+const getAllSession = () => {
+  let sql = "SELECT * FROM session";
+  return new Promise((resolve, reject) => {
     db_wa.query(sql, async function (err, result) {
       if (err) throw err;
-      let hasil = []
-      result.forEach(data => {
+      let hasil = [];
+      result.forEach((data) => {
         hasil.push({
           id: data.id,
           description: data.description,
           ready: data.ready,
           number: data.number,
-        })
+        });
       });
-      return resolve(hasil)
-    })
-  })
-}
-const saveSession = async(id, description,session)=>{
-  let sql = 'INSERT INTO `session` (`id`, `description`, session) VALUES ("'+id+'", "'+description+'", '+session+');';
+      return resolve(hasil);
+    });
+  });
+};
+const saveSession = async (id, description, session) => {
+  let sql =
+    'INSERT INTO `session` (`id`, `description`, session) VALUES ("' +
+    id +
+    '", "' +
+    description +
+    '", ' +
+    session +
+    ");";
   return db_wa.query(sql, function (err, result) {
     if (err) throw err;
-    return result
-  })
-}
-const updateSession = async(id,ready,number,session)=>{
-  let sql = 'UPDATE `session` SET `ready` = "'+ready+'"';
-  if (session!==undefined) sql += ', session = '+session+'';
-  if (number!==undefined) sql += ', number = "'+number+'"';
-  sql += ' WHERE `id` = "'+id+'";';
+    return result;
+  });
+};
+const updateSession = async (id, ready, number, session) => {
+  let sql = 'UPDATE `session` SET `ready` = "' + ready + '"';
+  if (session !== undefined) sql += ", session = " + session + "";
+  if (number !== undefined) sql += ', number = "' + number + '"';
+  sql += ' WHERE `id` = "' + id + '";';
   return db_wa.query(sql, function (err, result) {
     if (err) throw err;
-    return result
-  })
-}
-const removeSession = async(id) =>{
-  let sql = 'DELETE FROM `session` WHERE `id` = "'+id+'";';
+    return result;
+  });
+};
+const removeSession = async (id) => {
+  let sql = 'DELETE FROM `session` WHERE `id` = "' + id + '";';
   return db_wa.query(sql, function (err, result) {
     if (err) throw err;
-    return result
-  })
-}
-const closeAllSession = async(restart=false) =>{
-  let sql = 'SELECT * FROM session';
-  const hasil = await new Promise((resolve, reject)=>{
+    return result;
+  });
+};
+const closeAllSession = async (restart = false) => {
+  let sql = "SELECT * FROM session";
+  const hasil = await new Promise((resolve, reject) => {
     db_wa.query(sql, async function (err, result) {
       if (err) throw err;
-      return resolve(result)
-    })
-  })
-  console.log('closing all session')
-  let check = []
-  await hasil.forEach(async (data) => {
-    const indexClient = sessions.find(sess => sess.id == data.id)
-    console.log('Closing id:',data.id)
-    const client = indexClient.client
-    client.destroy().then(()=>{
-      check.push(data.id)
-      if (check.length == hasil.length){
-        console.log('All session closed')
-        if (restart) restartServer()
-      }
-    })
+      return resolve(result);
+    });
   });
-}
+  console.log("closing all session");
+  let check = [];
+  await hasil.forEach(async (data) => {
+    const indexClient = sessions.find((sess) => sess.id == data.id);
+    console.log("Closing id:", data.id);
+    const client = indexClient.client;
+    client.destroy().then(() => {
+      check.push(data.id);
+      if (check.length == hasil.length) {
+        console.log("All session closed");
+        if (restart) restartServer();
+      }
+    });
+  });
+};
 
 // const SESSIONS_FILE = './whatsapp-sessions.json';
 
@@ -220,172 +247,223 @@ const closeAllSession = async(restart=false) =>{
 // const getSessionsFile = function() {
 //   return JSON.parse(fs.readFileSync(SESSIONS_FILE));
 // }
-const createSession = function(id, description,session) {
-  console.log('Creating session: ' + id);
+const createSession = function (id, description, session) {
+  console.log("Creating session: " + id);
   const client = new Client({
     restartOnAuthFail: true,
     puppeteer: {
       headless: true,
       args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process', // <- this one doesn't works in Windows
-        '--disable-gpu'
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--single-process", // <- this one doesn't works in Windows
+        "--disable-gpu",
       ],
     },
     authStrategy: new LocalAuth({
       clientId: id,
-      dataPath: './data_session',
-    })
+      dataPath: "./data_session",
+    }),
   });
 
   client.initialize();
 
-  client.on('qr',(qr) => {
-    console.log('QR RECEIVED FOR ID:',id, qr);
+  client.on("qr", (qr) => {
+    console.log("QR RECEIVED FOR ID:", id, qr);
     qrcode.toDataURL(qr, (err, url) => {
-      waSocket.emit('qr', { id: id, src: url });
-      waSocket.emit('message', { id: id, text: 'QR Code received, scan please!' });
+      waSocket.emit("qr", { id: id, src: url });
+      waSocket.emit("message", {
+        id: id,
+        text: "QR Code received, scan please!",
+      });
     });
   });
 
-  client.on('ready', () => {
+  client.on("ready", () => {
     let retryMax = 5;
     const afterReady = () => {
       try {
-        console.log(client.info)
-        waSocket.emit('ready', { id: id });
-        waSocket.emit('message', { id: id, text: 'Whatsapp is ready!' });
-        waSocket.emit('number', { id: id, number: client.info.wid.user });
-        
+        console.log(client.info);
+        waSocket.emit("ready", { id: id });
+        waSocket.emit("message", { id: id, text: "Whatsapp is ready!" });
+        waSocket.emit("number", { id: id, number: client.info.wid.user });
+
         console.log(`Client ${id} is ready!`);
-        updateSession(id,true,client.info.wid.user)
+        updateSession(id, true, client.info.wid.user);
 
         // Checking pending message in db
         let sql = "SELECT * FROM `log_message`WHERE status='pending'";
         db_wa.query(sql, function (err, result) {
           if (err) throw err;
-          result.forEach(data => {
+          result.forEach((data) => {
             const number = phoneNumberFormatter(data.penerima);
             client.sendMessage(number, data.pesan);
-            let sql = "UPDATE `log_message` SET `status`='success' WHERE `id`='"+data.id+"'";
+            let sql =
+              "UPDATE `log_message` SET `status`='success' WHERE `id`='" +
+              data.id +
+              "'";
             db_wa.query(sql, function (err, result) {
               if (err) throw err;
-              console.log("Log message updated on id="+data.id);
+              console.log("Log message updated on id=" + data.id);
             });
           });
         });
       } catch (error) {
         console.log(error);
         if (retryMax > 0) {
-          console.log('Max retries reached, please delete and reconnect client manually');
-          return
+          console.log(
+            "Max retries reached, please delete and reconnect client manually"
+          );
+          return;
         }
-        console.log('Retry in 5 seconds...');
-        setTimeout(() => {afterReady()},5000)
+        console.log("Retry in 5 seconds...");
+        setTimeout(() => {
+          afterReady();
+        }, 5000);
       }
-    }
+    };
     afterReady();
   });
 
-  client.on('authenticated', () => {
+  client.on("authenticated", () => {
     console.log(`Client ${id} is authenticated!`);
-    waSocket.emit('authenticated', { id: id });
-    waSocket.emit('message', { id: id, text: 'Whatsapp is authenticated!' });
+    waSocket.emit("authenticated", { id: id });
+    waSocket.emit("message", { id: id, text: "Whatsapp is authenticated!" });
   });
 
-  client.on('auth_failure', function() {
-    waSocket.emit('message', { id: id, text: 'Auth failure, restarting...' });
+  client.on("auth_failure", function () {
+    waSocket.emit("message", { id: id, text: "Auth failure, restarting..." });
   });
 
-  client.on('disconnected', (reason) => {
-    waSocket.emit('message', { id: id, text: 'Whatsapp is disconnected!' });
+  client.on("disconnected", (reason) => {
+    waSocket.emit("message", { id: id, text: "Whatsapp is disconnected!" });
     client.destroy();
     // client.initialize();
 
     // Menghapus pada file sessions
-    removeSession(id)
-    waSocket.emit('remove-session', id);
+    removeSession(id);
+    waSocket.emit("remove-session", id);
   });
-  client.on('change_state',async state=>{
-    console.log(id," State :",state);
-  })
+  client.on("change_state", async (state) => {
+    console.log(id, " State :", state);
+  });
 
-  client.on('message', async msg => {
+  client.on("message", async (msg) => {
     // console.log('--NEW MESSAGE--');
     // console.log(msg);
-    const messageType  = ['chat', 'image', 'video', 'ptt', 'audio', 'document', 'location', 'vcard', 'multi_vcard', 'sticker'];
-    console.log(msg.type, msg.body)
-    if (messageType.indexOf(msg.type)<0) return
+    const messageType = [
+      "chat",
+      "image",
+      "video",
+      "ptt",
+      "audio",
+      "document",
+      "location",
+      "vcard",
+      "multi_vcard",
+      "sticker",
+    ];
+    console.log(msg.type, msg.body);
+    if (messageType.indexOf(msg.type) < 0) return;
     const chat = await msg.getChat();
-    if (chat.isGroup){
-      handleGroupChat(msg)
-    }else{
+    if (chat.isGroup) {
+      handleGroupChat(msg);
+    } else {
       switch (msg.body) {
-        case '!ping':
-          msg.reply('pong');
+        case "!ping":
+          msg.reply("pong");
           break;
-        case 'good morning':
-          msg.reply('Selamat Pagi');
+        case "good morning":
+          msg.reply("Selamat Pagi");
           break;
-        case'/groups':
-          client.getChats().then(chats => {
-            const groups = chats.filter(chat => chat.isGroup);
-      
+        case "/groups":
+          client.getChats().then((chats) => {
+            const groups = chats.filter((chat) => chat.isGroup);
+
             if (groups.length == 0) {
-              msg.reply('You have no group yet.');
+              msg.reply("You have no group yet.");
             } else {
-              let replyMsg = '*YOUR GROUPS*\n\n';
+              let replyMsg = "*YOUR GROUPS*\n\n";
               groups.forEach((group, i) => {
                 replyMsg += `ID: ${group.id._serialized}\nName: ${group.name}\n\n`;
               });
-              replyMsg += '_You can use the group id to send a message to the group._'
+              replyMsg +=
+                "_You can use the group id to send a message to the group._";
               msg.reply(replyMsg);
             }
           });
           break;
-        case '/buttons':
-          let button = new Buttons('Button body',[{body:'bt1'},{body:'bt2'},{body:'bt3'}],'title','footer');
+        case "/buttons":
+          let button = new Buttons(
+            "Button body",
+            [{ body: "bt1" }, { body: "bt2" }, { body: "bt3" }],
+            "title",
+            "footer"
+          );
           client.sendMessage(msg.from, button);
           break;
-        case '/list':
-          let sections = [{title:'sectionTitle',rows:[{title:'ListItem1', description: 'desc'},{title:'ListItem2'}]}];
-          let list = new List('List body','btnText',sections,'Title','footer');
+        case "/list":
+          let sections = [
+            {
+              title: "sectionTitle",
+              rows: [
+                { title: "ListItem1", description: "desc" },
+                { title: "ListItem2" },
+              ],
+            },
+          ];
+          let list = new List(
+            "List body",
+            "btnText",
+            sections,
+            "Title",
+            "footer"
+          );
           client.sendMessage(msg.from, list);
           break;
-        case '/cekd3pajak19':
-          msg.reply('Memproses permintaan ...');
+        case "/cekd3pajak19":
+          msg.reply("Memproses permintaan ...");
           let sql = "SELECT * FROM `mahasiswa` WHERE NOT ISNULL(whatsapp)";
           db_d3pjk.query(sql, async function (err, result) {
             if (err) throw err;
-            let verified = 0
-            let unverified = 0
-            let listUnverified = ""
-            for (let data of result){
-              const mls = 100+Math.floor(Math.random()*1500)+1
-              const number = phoneNumberFormatter("0"+data.whatsapp);
+            let verified = 0;
+            let unverified = 0;
+            let listUnverified = "";
+            for (let data of result) {
+              const mls = 100 + Math.floor(Math.random() * 1500) + 1;
+              const number = phoneNumberFormatter("0" + data.whatsapp);
               const isRegisteredNumber = await client.isRegisteredUser(number);
-              if (!isRegisteredNumber){
-                unverified = unverified+1;
-                listUnverified=listUnverified+"\n"+data.npm+" - 0"+data.whatsapp;
-                console.log("GAGAL "+data.npm+" 0"+data.whatsapp);
-              }else {
-                console.log("SUKSES "+data.npm+" 0"+data.whatsapp);
+              if (!isRegisteredNumber) {
+                unverified = unverified + 1;
+                listUnverified =
+                  listUnverified + "\n" + data.npm + " - 0" + data.whatsapp;
+                console.log("GAGAL " + data.npm + " 0" + data.whatsapp);
+              } else {
+                console.log("SUKSES " + data.npm + " 0" + data.whatsapp);
                 verified++;
               }
-              await sleep(mls)
+              await sleep(mls);
             }
-            let replyMsg = "*HASIL VERIFIKASI*\n\nTerverifikasi: "+verified+"\nGagal: "+unverified+"\n\n"+
-            "*Daftar nomor yang gagal verifikasi*"+listUnverified;
-            console.log("- Sukses "+verified+" | Gagal "+unverified+" -");
+            let replyMsg =
+              "*HASIL VERIFIKASI*\n\nTerverifikasi: " +
+              verified +
+              "\nGagal: " +
+              unverified +
+              "\n\n" +
+              "*Daftar nomor yang gagal verifikasi*" +
+              listUnverified;
+            console.log(
+              "- Sukses " + verified + " | Gagal " + unverified + " -"
+            );
             client.sendMessage(msg.from, replyMsg);
           });
           break;
-        case '/backup':
+        case "/backup":
+          msg.reply("Memulai backup ...");
           closeAllSession(true);
           break;
         default:
@@ -393,57 +471,61 @@ const createSession = function(id, description,session) {
           // msg.reply('*AUTO REPLY*\r\nWhatsapp ini tidak dapat menerima pesan')
           break;
       }
-    
-    
+
       // Downloading media
       if (msg.hasMedia) {
-        msg.downloadMedia().then(media => {
+        msg.downloadMedia().then((media) => {
           // To better understanding
           // Please look at the console what data we get
           // console.log(media);
-    
+
           if (media) {
             // The folder to store: change as you want!
             // Create if not exists
-            const mediaPath = './downloaded-media/';
-    
+            const mediaPath = "./downloaded-media/";
+
             if (!fs.existsSync(mediaPath)) {
               fs.mkdirSync(mediaPath);
             }
-    
+
             // Get the file extension by mime-type
             const extension = mime.extension(media.mimetype);
-            
-            // Filename: change as you want! 
+
+            // Filename: change as you want!
             // I will use the time for this example
             // Why not use media.filename? Because the value is not certain exists
             const filename = new Date().getTime();
-    
-            const fullFilename = mediaPath + filename + '.' + extension;
-  
-            console.log(media.mimetype)
+
+            const fullFilename = mediaPath + filename + "." + extension;
+
+            console.log(media.mimetype);
             // Save to file
             const params = new URLSearchParams();
-            params.append('filename',filename)
-            params.append('filetype',media.mimetype)
-            params.append('file',media.data)
-            params.append('jenis','ktta')
-            axios.post('https://cors.nuriz.web.id/https://script.google.com/macros/s/AKfycbzTVkl5eJluO1j6yRk-8ZA9Aic3nm4pIpT7pzO9YgvemlWe8GnPNYY5GNjkDEh7KpDVeg/exec?action=upload_file', params,{
-              headers: {
-                origin: 'whatsapp.heroku.com'
-              }
-            })
-            .then(function (response) {
-              // console.log(response);
-              console.log('File downloaded successfully!', fullFilename);
-              msg.reply('File downloaded successfully!');
-            })
-            .catch(function (err) {
-              console.log('Failed to save the file:', err);
-              msg.reply('Failed to save the file:', err);
-            });
+            params.append("filename", filename);
+            params.append("filetype", media.mimetype);
+            params.append("file", media.data);
+            params.append("jenis", "ktta");
+            axios
+              .post(
+                "https://cors.nuriz.web.id/https://script.google.com/macros/s/AKfycbzTVkl5eJluO1j6yRk-8ZA9Aic3nm4pIpT7pzO9YgvemlWe8GnPNYY5GNjkDEh7KpDVeg/exec?action=upload_file",
+                params,
+                {
+                  headers: {
+                    origin: "whatsapp.heroku.com",
+                  },
+                }
+              )
+              .then(function (response) {
+                // console.log(response);
+                console.log("File downloaded successfully!", fullFilename);
+                msg.reply("File downloaded successfully!");
+              })
+              .catch(function (err) {
+                console.log("Failed to save the file:", err);
+                msg.reply("Failed to save the file:", err);
+              });
             // try {
-            //   fs.writeFileSync(fullFilename, media.data, { encoding: 'base64' }); 
+            //   fs.writeFileSync(fullFilename, media.data, { encoding: 'base64' });
             //   console.log('File downloaded successfully!', fullFilename);
             //   msg.reply('File downloaded successfully!');
             // } catch (err) {
@@ -455,293 +537,343 @@ const createSession = function(id, description,session) {
       }
     }
   });
-  client.on('group_join', async msg => {
+  client.on("group_join", async (msg) => {
     const chat = await msg.getChat();
-    msg.reply('Halo, Bot ini dapat membantu kamu dalam mengelola group.\r\n\r\nSenang bergabung dengan * ' + chat.name+"*");
-
+    msg.reply(
+      "Halo, Bot ini dapat membantu kamu dalam mengelola group.\r\n\r\nSenang bergabung dengan * " +
+        chat.name +
+        "*"
+    );
   });
-  client.on('group_update',async msg => {
+  client.on("group_update", async (msg) => {
     msg.reply(JSON.stringify(msg));
-  })
+  });
 
-const handleGroupChat = async (msg) => {
-  const chat = await msg.getChat();
-  const mentions = await msg.getMentions();
-  let terpanggil = false;
-  for(let contact of mentions) {
+  const handleGroupChat = async (msg) => {
+    const chat = await msg.getChat();
+    const mentions = await msg.getMentions();
+    let terpanggil = false;
+    for (let contact of mentions) {
       terpanggil = contact.isMe;
       if (terpanggil) break;
-  }
-  if (terpanggil){
-    let pesan = msg.body.replace(/@/g,"/");
-    let pesanSplit = pesan.split("/");
-    for(let psn of pesanSplit){
-      if (psn.length > 0 && psn.slice(0,2)!=='62'){
-        pesan = psn.trim()
-        break;
-      }
     }
-    switch(pesan){
-      case 'help':
-        const panduan = '*LIST COMMAND AUTOREPLY*\r\n\r\n' +
-        '```panggil```  -> Tag semua participant\r\n'+
-        '```help```  -> Bantuan list _command_';
-        msg.reply(panduan);
-        break;
-      case 'panggil':
-        let text = "";
-        let mentions = [];
-  
-        for(let participant of chat.participants) {
-            const contact = await client.getContactById(participant.id._serialized);
-            
+    if (terpanggil) {
+      let pesan = msg.body.replace(/@/g, "/");
+      let pesanSplit = pesan.split("/");
+      for (let psn of pesanSplit) {
+        if (psn.length > 0 && psn.slice(0, 2) !== "62") {
+          pesan = psn.trim();
+          break;
+        }
+      }
+      switch (pesan) {
+        case "help":
+          const panduan =
+            "*LIST COMMAND AUTOREPLY*\r\n\r\n" +
+            "```panggil```  -> Tag semua participant\r\n" +
+            "```help```  -> Bantuan list _command_";
+          msg.reply(panduan);
+          break;
+        case "panggil":
+          let text = "";
+          let mentions = [];
+
+          for (let participant of chat.participants) {
+            const contact = await client.getContactById(
+              participant.id._serialized
+            );
+
             mentions.push(contact);
             text += `@${participant.id.user} `;
-        }
-  
-        await chat.sendMessage(text, { mentions });
-        break;
-      default:
-        
-        break;
+          }
+
+          await chat.sendMessage(text, { mentions });
+          break;
+        default:
+          break;
+      }
     }
-  }
-    
-  }
+  };
   // Tambahkan client ke sessions
   sessions.push({
     id: id,
     description: description,
-    client: client
+    client: client,
   });
-}
+};
 
-const init = async function(socket) {
-  console.log('INIT')
+const init = async function (socket) {
+  console.log("INIT");
   const savedSessions = await getAllSession();
   if (savedSessions.length > 0) {
     if (socket) {
       // console.log(savedSessions); //pastikan session yg ditampilin sesuai sm data
-      socket.emit('init', savedSessions);
+      socket.emit("init", savedSessions);
       //??
     } else {
       let sql = 'UPDATE `session` SET `ready` = "false" WHERE ready="true"';
-      db_wa.query(sql, function (err, result) {})
-      savedSessions.forEach(sess => {
-        createSession(sess.id, sess.description,sess.session);
+      db_wa.query(sql, function (err, result) {});
+      savedSessions.forEach((sess) => {
+        createSession(sess.id, sess.description, sess.session);
       });
     }
-  }else{
+  } else {
     if (socket) {
-      socket.emit('init', []);
+      socket.emit("init", []);
     }
   }
-  serverReady = true
-}
+  serverReady = true;
+};
 //DOWNLOAD SESSION
-console.log("Downloading session...");
-const request = https.get("https://wa.nuriz.web.id/data_session.zip", function(response) {
-    if (response.statusCode === 200) {
-        const file = fs.createWriteStream("data_session.zip");
-        response.pipe(file);
-        // after download completed close filestream
-        file.on("finish", () => {
-            file.close();
-            console.log("Download Completed");
-            var sessionZip = new AdmZip("./data_session.zip");
-            const dir = './data_session/'
-            if (!fs.existsSync(dir)){
-                fs.mkdirSync(dir, { recursive: true });
-            }
-            console.log('extracting file')
-            sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
-            fs.unlinkSync('./data_session.zip');
-            console.log('starting...');
-            fileSession = true
-            init();
-        });
-    }
-    else{
-        console.log("Error Downloading File Session, opening new session");
-        fileSession=true
-        init();
-    }
-}).on('error', function(err) {
-    console.log("Error: " + err.message);
-});
+const initSession = async () => {
+  console.log("Downloading Session");
+  let progress = 0;
+  var fileId = await cariSessionFile();
+  await gdrive.files
+    .get({ fileId, alt: "media" }, { responseType: "stream" })
+    .then((res) => {
+      res.data
+        .on("end", async () => {
+          console.log("Done downloading file.");
+          const deleteFile = await gdrive.files.emptyTrash();
+          if (deleteFile.data === "") {
+            console.log("Trash deleted");
+          }
+          var sessionZip = new AdmZip("./data_session.zip");
+          const dir = "./data_session/";
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          console.log("extracting file");
+          sessionZip.extractAllTo(/*target path*/ dir, /*overwrite*/ true);
+          fs.unlinkSync("./data_session.zip");
+          console.log("Session restore Completed");
+          fileSession = true;
+          init();
+        })
+        .on("error", (err) => {
+          console.error("Error Downloading File Session, opening new session");
+          fileSession = true;
+          init();
+        })
+        .on("data", (d) => {
+          progress += d.length;
+          if (process.stdout.isTTY) {
+            process.stdout.clearLine();
+            process.stdout.cursorTo(0);
+            process.stdout.write(`Downloaded ${progress} bytes`);
+          }
+        })
+        .pipe(fs.createWriteStream("data_session.zip"));
+    })
+    .catch((err) => {
+      console.error(JSON.stringify(err));
+    });
+};
+initSession();
+
 // Socket IO
-waSocket.on('connection', function(socket) {
-  console.log('socket connected');
+waSocket.on("connection", function (socket) {
+  console.log("socket connected");
   if (fileSession) init(socket);
-  else{
+  else {
     const checkSessionFile = setInterval(() => {
-      if (fileSession){
+      if (fileSession) {
         clearInterval(checkSessionFile);
         init(socket);
       }
-    },500);
+    }, 500);
   }
-  socket.on('create-session', async function(data) {
-    console.log('Create session: ' + data.id);
+  socket.on("create-session", async function (data) {
+    console.log("Create session: " + data.id);
     await saveSession(data.id, data.description, null);
-    createSession(data.id, data.description,'');
+    createSession(data.id, data.description, "");
   });
-  socket.on('remove-session',function(data){
-    console.log('Request remove session: ' + data.id);
-    const indexClient = sessions.find(sess => sess.id == data.id)
-    const client = indexClient.client
+  socket.on("remove-session", function (data) {
+    console.log("Request remove session: " + data.id);
+    const indexClient = sessions.find((sess) => sess.id == data.id);
+    const client = indexClient.client;
     // Menghapus pada file sessions
     removeSession(data.id);
-    client.destroy().then(async()=>{
-      await sleep(500)
-      if (fs.existsSync('./data_session/session-'+data.id)) {
-        fs.rmdirSync('./data_session/session-'+data.id, { recursive: true, force:true });
-        await sleep(500)
-        fs.rmdir('./data_session/session-'+data.id, {recursive: true,force: true}, (err) => {
-          if (err) {
-            return console.log("error occurred in deleting directory", err);
+    client.destroy().then(async () => {
+      await sleep(500);
+      if (fs.existsSync("./data_session/session-" + data.id)) {
+        fs.rmdirSync("./data_session/session-" + data.id, {
+          recursive: true,
+          force: true,
+        });
+        await sleep(500);
+        fs.rmdir(
+          "./data_session/session-" + data.id,
+          { recursive: true, force: true },
+          (err) => {
+            if (err) {
+              return console.log("error occurred in deleting directory", err);
+            }
+
+            console.log("Session deleted successfully");
+            waSocket.emit("remove-session", data.id);
           }
-          
-          console.log("Session deleted successfully");
-          waSocket.emit('remove-session', data.id);
-        })
+        );
       }
     });
-  })
+  });
 });
-function whatsappGEThandler(req,res){
-  switch(req.params[1]){
-    case 'cek-nomor':
-      cekNomor(req,res);
+function whatsappGEThandler(req, res) {
+  switch (req.params[1]) {
+    case "cek-nomor":
+      cekNomor(req, res);
       break;
     default:
-      invalidAPIrequest()
+      invalidAPIrequest();
   }
 
-  async function cekNomor(req,res){
-    if (!req.query.nomor){
+  async function cekNomor(req, res) {
+    if (!req.query.nomor) {
       return res.status(403).json({
-        status: 'failed',
-        message: 'Nomor tidak boleh kosong',
+        status: "failed",
+        message: "Nomor tidak boleh kosong",
       });
     }
     const sender = Math.floor(Math.random() * sessions.length);
     const client = sessions[sender].client;
     const number = phoneNumberFormatter(req.query.nomor);
-    let status_wa = await client.getState()
-    console.log("Cek nomor "+req.query.nomor+" lewat "+sessions[sender].number+" ("+sessions[sender].id+")")
-    if ( status_wa!=='CONNECTED') {
+    let status_wa = await client.getState();
+    console.log(
+      "Cek nomor " +
+        req.query.nomor +
+        " lewat " +
+        sessions[sender].number +
+        " (" +
+        sessions[sender].id +
+        ")"
+    );
+    if (status_wa !== "CONNECTED") {
       return res.status(406).json({
-        status: 'failed',
-        message: 'Whatsapp not connected',
+        status: "failed",
+        message: "Whatsapp not connected",
       });
     }
     const isRegisteredNumber = await client.isRegisteredUser(number);
-    if (isRegisteredNumber){
+    if (isRegisteredNumber) {
       return res.json({
         status: true,
-        message: 'nomor terdaftar'
-      })
+        message: "nomor terdaftar",
+      });
     }
     if (!isRegisteredNumber) {
       return res.status(422).json({
         status: false,
-        message: 'nomor tidak terdaftar'
+        message: "nomor tidak terdaftar",
       });
     }
   }
 }
-function whatsappPOSThandler(req,res){
-  switch(req.params[1]){
-    case 'send-message':
-      postSendMessage(req,res);
+function whatsappPOSThandler(req, res) {
+  switch (req.params[1]) {
+    case "send-message":
+      postSendMessage(req, res);
       break;
     default:
-      invalidAPIrequest()
+      invalidAPIrequest();
   }
   // Send message
-  async function postSendMessage(req, res){
+  async function postSendMessage(req, res) {
     // console.log(req);
     if (!req.body.number || !req.body.message) {
       res.status(400).sen({
-        message: 'Bad Request',
-      })
+        message: "Bad Request",
+      });
     }
 
     const sender = Math.floor(Math.random() * sessions.length);
     const number = phoneNumberFormatter(req.body.number);
     let message = req.body.message;
-    if (jwt.decode(req.headers['authorization'].split(' ')[1], secretKey).name == 'Portal D3Pajak19'){
-      message = await queryMysql(req.body.number,req.body.message)
+    if (
+      jwt.decode(req.headers["authorization"].split(" ")[1], secretKey).name ==
+      "Portal D3Pajak19"
+    ) {
+      message = await queryMysql(req.body.number, req.body.message);
     }
     // console.log(sessions)
-    
+
     /**
      * Check if the number is already registered
      * Copied from app.js
-     * 
+     *
      * Please check app.js for more validations example
      * You can add the same here!
      */
-    let status_msg = "pending"
+    let status_msg = "pending";
     let sender_number = 0;
     if (sessions.length > 0) {
-      if (!serverReady){
+      if (!serverReady) {
         return res.status(406).json({
-          status: 'failed',
-          message: 'Server is under maintenance',
+          status: "failed",
+          message: "Server is under maintenance",
         });
-      }else{
+      } else {
         const client = sessions[sender].client;
-      sender_number = sessions[sender].number;
-      let status_wa = await client.getState()
-      console.log("STATUS",status_wa)
-      if ( status_wa!=='CONNECTED') {
-        res.status(200).json({
-          status: status_msg,
-        });
-      }else{
-        const isRegisteredNumber = await client.isRegisteredUser(number);
-
-        if (!isRegisteredNumber) {
-          return res.status(422).json({
-            status: false,
-            message: 'The number is not registered'
-          });
-        }
-        status_msg="success"
-        client.sendMessage(number, message).then(response => {
+        sender_number = sessions[sender].number;
+        let status_wa = await client.getState();
+        console.log("STATUS", status_wa);
+        if (status_wa !== "CONNECTED") {
           res.status(200).json({
-            status: true,
-            response: response
+            status: status_msg,
           });
-        }).catch(err => {
-          res.status(500).json({
-            status: false,
-            response: err
-          });
-        });
+        } else {
+          const isRegisteredNumber = await client.isRegisteredUser(number);
+
+          if (!isRegisteredNumber) {
+            return res.status(422).json({
+              status: false,
+              message: "The number is not registered",
+            });
+          }
+          status_msg = "success";
+          client
+            .sendMessage(number, message)
+            .then((response) => {
+              res.status(200).json({
+                status: true,
+                response: response,
+              });
+            })
+            .catch((err) => {
+              res.status(500).json({
+                status: false,
+                response: err,
+              });
+            });
+        }
       }
-      }
-      
-    }else{
-      console.log('Whatsapp API Alert : No Sessions')
+    } else {
+      console.log("Whatsapp API Alert : No Sessions");
       res.status(200).json({
-        status: 'no session',
+        status: "no session",
       });
     }
-    let sql = "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('"+sender_number+"','"+req.body.number+"','"+message+"','"+status_msg+"',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
+    let sql =
+      "INSERT INTO `log_message` (`pengirim`, `penerima`,`pesan`,`status`,`created_at`, `updated_at`) VALUES ('" +
+      sender_number +
+      "','" +
+      req.body.number +
+      "','" +
+      message +
+      "','" +
+      status_msg +
+      "',CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
     db_wa.query(sql, function (err, result) {
       if (err) throw err;
       console.log("1 message recorded -END-");
     });
-  };
+  }
 }
 
 async function sleep(millis) {
-  return new Promise(resolve => setTimeout(resolve, millis));
+  return new Promise((resolve) => setTimeout(resolve, millis));
 }
 module.exports = {
   whatsappPOSThandler,
-  whatsappGEThandler
-}
+  whatsappGEThandler,
+};

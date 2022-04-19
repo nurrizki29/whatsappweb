@@ -1,9 +1,10 @@
-const fs = require('fs');
-const cron = require('node-cron');
+const fs = require("fs");
+const cron = require("node-cron");
 
-if (fs.existsSync('./.wwebjs_auth/')) fs.rmdirSync('./.wwebjs_auth/', {recursive: true})
-if (fs.existsSync('./test.jpeg')) fs.unlinkSync('./test.jpeg');
+if (fs.existsSync("./.wwebjs_auth/"))
+  fs.rmdirSync("./.wwebjs_auth/", { recursive: true });
+if (fs.existsSync("./test.jpeg")) fs.unlinkSync("./test.jpeg");
 
-cron.schedule('* * * * *', () => {
-    console.log('running a task every minute');
-})
+cron.schedule("* * * * *", () => {
+  console.log("running a task every minute");
+});
