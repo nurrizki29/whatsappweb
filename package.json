@@ -24,13 +24,13 @@
     "dotenv": "^16.0.0",
     "express": "^4.17.1",
     "express-fileupload": "^1.2.0",
-    "express-rate-limit": "^6.3.0",
+    "express-rate-limit": "^6.4.0",
     "express-session": "^1.17.2",
     "express-validator": "^6.9.2",
     "form-data": "^4.0.0",
     "googleapis": "^100.0.0",
     "http": "0.0.1-security",
-    "jose": "^4.6.1",
+    "jose": "^4.7.0",
     "js-file-download": "^0.4.12",
     "js-file-downloader": "^1.1.24",
     "jsonwebtoken": "^8.5.1",
@@ -40,7 +40,7 @@
     "qrcode": "^1.4.4",
     "socket.io": "2.3.0",
     "uuid": "^8.3.2",
-    "whatsapp-web.js": "latest"
+    "whatsapp-web.js": "^1.16.6"
   },
   "devDependencies": {
     "nodemon": "^2.0.7"
