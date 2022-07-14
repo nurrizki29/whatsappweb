@@ -58,7 +58,7 @@ const invalidAPIrequest = (req, res) => {
   );
 };
 
-const connection = mysql.createConnection({
+const connection = mysql.createPool({
   host: "103.28.53.179",
   user: "nurizweb_navicat",
   password: "sp@8cfXKJKub3Y8",
