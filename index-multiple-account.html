@@ -109,7 +109,6 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
 	<script>
-		console.log('READY')
 		$(document).ready(function () {
 			var socket = io('/whatsapp');
 
@@ -163,6 +162,7 @@
 			});
 
 			socket.on('init', function (data) {
+				console.log('READY')
 				$('.client-container .client').not(':first').remove();
 				console.log(data);
 				$('#client-id').removeAttr('disabled');

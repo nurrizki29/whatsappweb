@@ -61,7 +61,7 @@ const downloadSessionBackup = async () => {
         .pipe(fs.createWriteStream("data_session.zip"));
     })
     .catch((err) => {
-      console.error(JSON.stringify(err));
+      console.error("Error finding File Session, opening new session");
     });
 };
 const uploadSessionBackup = async () => {
