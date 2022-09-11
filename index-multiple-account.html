@@ -1,26 +1,33 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>Whatsapp API</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+		integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 	<style>
-	.client {
-		border: 1px solid #ccc;
-		padding: 15px;
-		box-sizing: border-box;
-		display: inline-block;
-		margin: 10px;
-	}
-	.hide {
-		display: none;
-	}
-	.container{
-		padding-top: 20px;
-	}
+		.client {
+			border: 1px solid #ccc;
+			padding: 15px;
+			box-sizing: border-box;
+			display: inline-block;
+			margin: 10px;
+		}
+
+		.hide {
+			display: none;
+		}
+
+		.container {
+			padding-top: 20px;
+		}
 	</style>
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+		integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+		crossorigin="anonymous"></script>
 </head>
+
 <body>
 
 	<div class="container" id="app">
@@ -29,12 +36,14 @@
 		<div class="form-container">
 			<div class="mb-3">
 				<label for="client-id" class="form-label">ID</label>
-				<input type="text" disabled class="form-control form-new-client" id="client-id" aria-describedby="client-id" placeholder="Masukkan ID">
+				<input type="text" disabled class="form-control form-new-client" id="client-id" aria-describedby="client-id"
+					placeholder="Masukkan ID">
 				<div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
 			</div>
 			<div class="mb-3">
 				<label for="client-description" class="form-label">Deskripsi</label>
-				<textarea class="form-control form-new-client" disabled id="client-description" rows="3" placeholder="Masukkan deskripsi"></textarea>
+				<textarea class="form-control form-new-client" disabled id="client-description" rows="3"
+					placeholder="Masukkan deskripsi"></textarea>
 			</div>
 			<button class="btn btn-primary add-client-btn">Tambah Client</button>
 		</div>
@@ -47,61 +56,65 @@
 					<span class="number"></span>
 				</p>
 				<button class="btn btn-sm btn-danger remove-client-btn" id="remove-client-btn">Hapus Client</button>
-				<button type="button" class="btn btn-sm btn-primary" id="modal-btn" data-bs-toggle="modal" data-bs-target="#modal">
+				<button type="button" class="btn btn-sm btn-primary" id="modal-btn" data-bs-toggle="modal"
+					data-bs-target="#modal">
 					Detail
 				</button>
 				<p id="status0"></p>
 				<!-- Modal -->
-				<div class="modal fade" id="modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+				<div class="modal fade" id="modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+					aria-labelledby="staticBackdropLabel" aria-hidden="true">
 					<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-					<div class="modal-content">
-						<div class="modal-header">
-						<h5 class="modal-title" id="staticBackdropLabel">Detail Client</h5>
-						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-						</div>
-						<div class="modal-body">
-							<div id="qrcode-div" class="hide text-center">
-								<h5>Scan Barcode on Whatsapp</h5>
-								<img src="" alt="QR Code" id="qrcode" class="hide">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="staticBackdropLabel">Detail Client</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 							</div>
-							<h5></h5>
-							<p>
-								<b>Status: </b>
-								<span id="status1"></span>
-							</p>
-							<button class="btn btn-sm btn-secondary btn-log" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLog" aria-expanded="false" aria-controls="collapseLog">
-								Logs
-							</button></br>
-							<div class="collapse" id="collapseLog">
-								<div class="card card-body">
-									<h5>Logs:</h5>
-									<ul class="logs"></ul>
+							<div class="modal-body">
+								<div id="qrcode-div" class="hide text-center">
+									<h5>Scan Barcode on Whatsapp</h5>
+									<img src="" alt="QR Code" id="qrcode" class="hide">
+								</div>
+								<h5></h5>
+								<p>
+									<b>Status: </b>
+									<span id="status1"></span>
+								</p>
+								<button class="btn btn-sm btn-secondary btn-log" type="button" data-bs-toggle="collapse"
+									data-bs-target="#collapseLog" aria-expanded="false" aria-controls="collapseLog">
+									Logs
+								</button></br>
+								<div class="collapse" id="collapseLog">
+									<div class="card card-body">
+										<h5>Logs:</h5>
+										<ul class="logs"></ul>
+									</div>
 								</div>
 							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+							</div>
 						</div>
-						<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-						</div>
-					</div>
 					</div>
 				</div>
-				
-				
+
+
 			</div>
 		</div>
 		<div class="client-container row">
-			
+
 		</div>
 	</div>
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
 	<script>
-		$(document).ready(function() {
+		console.log('READY')
+		$(document).ready(function () {
 			var socket = io('/whatsapp');
 
 			// Ketika button tambah diklik
-			$('.add-client-btn').click(function() {
+			$('.add-client-btn').click(function () {
 				var clientId = $('#client-id').val();
 				var clientDescription = $('#client-description').val();
 				if (clientId === '' || clientDescription === '') {
@@ -110,20 +123,20 @@
 					$('#client-id').val('');
 					$('#client-description').val('')
 					var template = $('.client').first().clone()
-											.removeClass('hide')
-											.addClass(clientId);
+						.removeClass('hide')
+						.addClass(clientId);
 					template.find('.title').html(clientId);
 					template.find('#qrcode').attr('id', 'qrcode-' + clientId);
 					template.find('#qrcode-div').attr('id', 'qrcode-div-' + clientId);
 					template.find('#status0').attr('id', 'status0-' + clientId);
 					template.find('#status1').attr('id', 'status1-' + clientId);
 					template.find('#remove-client-btn').attr('data-client-id', clientId);
-					template.find('#remove-client-btn').attr('id', 'btn-remove-'+clientId);
-					template.find('#modal').attr('id', 'modal-'+clientId);
-					template.find('#modal-btn').attr('data-bs-target', '#modal-'+clientId);
-					template.find('#modal-btn').attr('id', 'modal-btn-'+clientId);
-					template.find('#collapseLog').attr('id', 'collapseLog-'+clientId);
-					template.find('.btn-log').attr('data-bs-target', '#collapseLog-'+clientId);
+					template.find('#remove-client-btn').attr('id', 'btn-remove-' + clientId);
+					template.find('#modal').attr('id', 'modal-' + clientId);
+					template.find('#modal-btn').attr('data-bs-target', '#modal-' + clientId);
+					template.find('#modal-btn').attr('id', 'modal-btn-' + clientId);
+					template.find('#collapseLog').attr('id', 'collapseLog-' + clientId);
+					template.find('.btn-log').attr('data-bs-target', '#collapseLog-' + clientId);
 					template.find('.description').html(clientDescription);
 					$('.client-container').append(template);
 					const pesan = "Connecting..."
@@ -133,15 +146,15 @@
 						id: clientId,
 						description: clientDescription
 					});
-					$('#btn-remove-'+clientId).click(function() {
+					$('#btn-remove-' + clientId).click(function () {
 						var clientId = $(this).data('client-id');
 						$(this).data('disabled', true);
-						console.log('Removing client ',clientId)
+						console.log('Removing client ', clientId)
 						$(`.client.${clientId} .logs`).append($('<li>').text('Removing Client...'));
 						$(`#status0-${clientId}`).html('Removing Client...');
 						$(`#status1-${clientId}`).html('Removing Client...');
-						$('#btn-remove-'+clientId).attr('disabled', true);
-						$('#modal-btn-'+clientId).attr('disabled', true);
+						$('#btn-remove-' + clientId).attr('disabled', true);
+						$('#modal-btn-' + clientId).attr('disabled', true);
 						socket.emit('remove-session', {
 							id: clientId,
 						});
@@ -149,7 +162,7 @@
 				}
 			});
 
-			socket.on('init', function(data) {
+			socket.on('init', function (data) {
 				$('.client-container .client').not(':first').remove();
 				console.log(data);
 				$('#client-id').removeAttr('disabled');
@@ -160,66 +173,66 @@
 					var clientId = session.id;
 					var clientDescription = session.description;
 					var template = $('.client').first().clone()
-											   .removeClass('hide')
-											   .addClass(clientId);
+						.removeClass('hide')
+						.addClass(clientId);
 					template.find('.title').html(clientId);
 					template.find('#qrcode').attr('id', 'qrcode-' + clientId);
 					template.find('#qrcode-div').attr('id', 'qrcode-div-' + clientId);
 					template.find('#status0').attr('id', 'status0-' + clientId);
 					template.find('#status1').attr('id', 'status1-' + clientId);
 					template.find('#remove-client-btn').attr('data-client-id', clientId);
-					template.find('#remove-client-btn').attr('id', 'btn-remove-'+clientId);
-					template.find('#modal').attr('id', 'modal-'+clientId);
-					template.find('#modal-btn').attr('data-bs-target', '#modal-'+clientId);
-					template.find('#modal-btn').attr('id', 'modal-btn-'+clientId);
-					template.find('#collapseLog').attr('id', 'collapseLog-'+clientId);
-					template.find('.btn-log').attr('data-bs-target', '#collapseLog-'+clientId);
+					template.find('#remove-client-btn').attr('id', 'btn-remove-' + clientId);
+					template.find('#modal').attr('id', 'modal-' + clientId);
+					template.find('#modal-btn').attr('data-bs-target', '#modal-' + clientId);
+					template.find('#modal-btn').attr('id', 'modal-btn-' + clientId);
+					template.find('#collapseLog').attr('id', 'collapseLog-' + clientId);
+					template.find('.btn-log').attr('data-bs-target', '#collapseLog-' + clientId);
 					template.find('.description').html(clientDescription);
 					$('.client-container').append(template);
-					var myModal = new bootstrap.Modal(document.getElementById('modal-'+clientId))
+					var myModal = new bootstrap.Modal(document.getElementById('modal-' + clientId))
 					let pesan = 'Whatsapp is ready!'
-					if (session.ready==='true') {
-						$(`.client.${session.id} .number`).html("0"+session.number.slice(2));
+					if (session.ready === 'true') {
+						$(`.client.${session.id} .number`).html("0" + session.number.slice(2));
 						$(`.client.${session.id} .logs`).append($('<li>').text('Whatsapp is ready!'));
 					} else {
-						pesan='Connecting...'
+						pesan = 'Connecting...'
 						$(`.client.${session.id} .logs`).append($('<li>').text('Connecting...'));
 					}
 					$(`#status0-${session.id}`).html(pesan);
 					$(`#status1-${session.id}`).html(pesan);
 				}
-					// Ketika button hapus diklik
-				$('.remove-client-btn').click(function() {
+				// Ketika button hapus diklik
+				$('.remove-client-btn').click(function () {
 					var clientId = $(this).data('client-id');
 					$(this).data('disabled', true);
-					console.log('Removing client ',clientId)
+					console.log('Removing client ', clientId)
 					$(`.client.${clientId} .logs`).append($('<li>').text('Removing Client...'));
 					$(`#status0-${clientId}`).html('Removing Client...');
 					$(`#status1-${clientId}`).html('Removing Client...');
-					$('#btn-remove-'+clientId).attr('disabled', true);
-					$('#modal-btn-'+clientId).attr('disabled', true);
+					$('#btn-remove-' + clientId).attr('disabled', true);
+					$('#modal-btn-' + clientId).attr('disabled', true);
 					socket.emit('remove-session', {
 						id: clientId,
 					});
 				});
 			});
 
-			socket.on('remove-session', function(id) {
+			socket.on('remove-session', function (id) {
 				$(`.client.${id}`).remove();
 			});
 
-			socket.on('message', function(data) {
+			socket.on('message', function (data) {
 				$(`#status0-${data.id}`).html(data.text);
 				$(`#status1-${data.id}`).html(data.text);
 				$(`.client.${data.id} .logs`).append($('<li>').text(data.text));
 			});
 
-			socket.on('number',function(data){
+			socket.on('number', function (data) {
 				console.log(data)
 				$(`.client.${data.id} .number`).html(data.number);
 			});
 
-			socket.on('qr', function(data) {
+			socket.on('qr', function (data) {
 				console.log(data)
 				console.log(`.client.${data.id} #qrcode`)
 				$(`.client.${data.id} #qrcode-${data.id}`).attr('src', data.src);
@@ -227,16 +240,17 @@
 				$(`.client.${data.id} #qrcode-div-${data.id}`).show();
 			});
 
-			socket.on('ready', function(data) {
+			socket.on('ready', function (data) {
 				$(`.client.${data.id} #qrcode`).hide();
 				$(`.client.${data.id} #qrcode-div-${data.id}`).hide();
 			});
 
-			socket.on('authenticated', function(data) {
+			socket.on('authenticated', function (data) {
 				$(`.client.${data.id} #qrcode-${data.id}`).hide();
 				$(`.client.${data.id} #qrcode-div-${data.id}`).hide();
 			});
 		});
 	</script>
 </body>
+
 </html>
