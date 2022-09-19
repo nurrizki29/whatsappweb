@@ -91,20 +91,7 @@ const restartServer = async () => {
     .catch((err) => {
       console.error("Whatsapp API Error : ", err);
     });
-  axios({
-    url: "https://api.heroku.com/apps/whatsapp-api-nuriz/dynos",
-    method: "DELETE",
-    headers: {
-      Authorization: "Bearer " + process.env.HEROKU_API_KEY,
-      Accept: "application/vnd.heroku+json; version=3`",
-    },
-  }).then(function (response, err) {
-    if (response.status !== 202) {
-      console.log(response.status, err);
-    } else {
-      console.log("Dyno restarted successfully!", response.data);
-    }
-  });
+  initSession(); //restart session
 };
 cron.schedule("0 17 * * *", async () => {
   serverReady = false;
